@@ -1,0 +1,715 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
+#include <ctype.h>
+#include <stdint.h>
+
+uint64_t num_directives = 0;
+
+int registers[100];
+int instruction_index = 0;
+char **directives = NULL;
+int *label_instruction_pos = NULL;
+
+char *get_symbol_for_opcode(int opcode) {
+    if (opcode == 0) {
+        return "SR";
+    } else if (opcode == 1) {
+        return "ADD";
+    } else if (opcode == 2) {
+        return "SUB";
+    } else if (opcode == 3) {
+        return "MULT";
+    } else if (opcode == 4) {
+        return "DIV";
+    } else if (opcode == 5) {
+        return "MOD";
+    } else if (opcode == 6) {
+        return "EQ";
+    } else if (opcode == 7) {
+        return "NEQ";
+    } else if (opcode == 8) {
+        return "GT";
+    } else if (opcode == 9) {
+        return "GTE";
+    } else if (opcode == 10) {
+        return "LT";
+    } else if (opcode == 11) {
+        return "LTE";
+    } else if (opcode == 12) {
+        return "AND";
+    } else if (opcode == 13) {
+        return "OR";
+    } else if (opcode == 14) {
+        return "NOT";
+    } else if (opcode == 15) {
+        return "XOR";
+    } else if (opcode == 16) {
+        return "SLL";
+    } else if (opcode == 17) {
+        return "SRL";
+    } else if (opcode == 18) {
+        return "LBL";
+    } else if (opcode == 19) {
+        return "GOTO";
+    } else if (opcode == 20) {
+        return "GEQ";
+    } else if (opcode == 21) {
+        return "GNQ";
+    } else if (opcode == 22) {
+        return "PRINT";
+    } else if (opcode == 23) {
+        return "PRINTLN";
+    } else if (opcode == 24) {
+        return "HALT";
+    }
+
+    return NULL;
+}
+
+int execute_SR(int *registers, int out_reg, int first_operand, int first_immediate) {
+    if (first_immediate > 0) {
+        registers[out_reg] = first_operand;
+    } else {
+        registers[out_reg] = registers[first_operand];
+    }
+    return 0;
+}
+
+int execute_ADD(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                int second_immediate) {
+    int sum = 0;
+    if (first_immediate > 0) {
+        sum = first_operand;
+    } else {
+        sum = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        sum += second_operand;
+    } else {
+        sum += registers[second_operand];
+    }
+
+    registers[out_reg] = sum;
+    return 0;
+}
+
+
+int execute_SUB(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                int second_immediate) {
+    int sum = 0;
+    if (first_immediate > 0) {
+        sum = first_operand;
+    } else {
+        sum = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        sum -= second_operand;
+    } else {
+        sum -= registers[second_operand];
+    }
+
+    registers[out_reg] = sum;
+    return 0;
+}
+
+
+int execute_MULT(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                 int second_immediate) {
+    int sum = 0;
+    if (first_immediate > 0) {
+        sum = first_operand;
+    } else {
+        sum = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        sum *= second_operand;
+    } else {
+        sum *= registers[second_operand];
+    }
+
+    registers[out_reg] = sum;
+    return 0;
+}
+
+int execute_DIV(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                int second_immediate) {
+    int sum = 0;
+    if (first_immediate > 0) {
+        sum = first_operand;
+    } else {
+        sum = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        sum /= second_operand;
+    } else {
+        sum /= registers[second_operand];
+    }
+
+    registers[out_reg] = sum;
+    return 0;
+}
+
+int execute_MOD(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                int second_immediate) {
+    int sum = 0;
+    if (first_immediate > 0) {
+        sum = first_operand;
+    } else {
+        sum = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        sum %= second_operand;
+    } else {
+        sum %= registers[second_operand];
+    }
+
+    registers[out_reg] = sum;
+    return 0;
+}
+
+
+int execute_EQ(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+               int second_immediate) {
+    int val1 = 0;
+    int val2 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        val2 = second_operand;
+    } else {
+        val2 = registers[second_operand];
+    }
+
+    registers[out_reg] = val1 == val2;
+    return 0;
+}
+
+int execute_NEQ(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                int second_immediate) {
+    int val1 = 0;
+    int val2 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        val2 = second_operand;
+    } else {
+        val2 = registers[second_operand];
+    }
+
+    registers[out_reg] = val1 != val2;
+    return 0;
+}
+
+int execute_GT(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+               int second_immediate) {
+    int val1 = 0;
+    int val2 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        val2 = second_operand;
+    } else {
+        val2 = registers[second_operand];
+    }
+
+    registers[out_reg] = val1 > val2;
+    return 0;
+}
+
+int execute_GTE(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                int second_immediate) {
+    int val1 = 0;
+    int val2 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        val2 = second_operand;
+    } else {
+        val2 = registers[second_operand];
+    }
+
+    registers[out_reg] = val1 >= val2;
+    return 0;
+}
+
+
+int execute_LT(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+               int second_immediate) {
+    int val1 = 0;
+    int val2 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        val2 = second_operand;
+    } else {
+        val2 = registers[second_operand];
+    }
+
+    registers[out_reg] = val1 < val2;
+    return 0;
+}
+
+int execute_LTE(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                int second_immediate) {
+    int val1 = 0;
+    int val2 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        val2 = second_operand;
+    } else {
+        val2 = registers[second_operand];
+    }
+
+    registers[out_reg] = val1 <= val2;
+    return 0;
+}
+
+
+int execute_AND(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                int second_immediate) {
+    int val1 = 0;
+    int val2 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        val2 = second_operand;
+    } else {
+        val2 = registers[second_operand];
+    }
+
+    registers[out_reg] = val1 & val2;
+    return 0;
+}
+
+int execute_OR(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+               int second_immediate) {
+    int val1 = 0;
+    int val2 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        val2 = second_operand;
+    } else {
+        val2 = registers[second_operand];
+    }
+
+    registers[out_reg] = val1 | val2;
+    return 0;
+}
+
+int execute_NOT(int *registers, int out_reg, int first_operand, int first_immediate) {
+    int val1 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+
+    registers[out_reg] = ~val1;
+    return 0;
+}
+
+int execute_XOR(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                int second_immediate) {
+    int val1 = 0;
+    int val2 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        val2 = second_operand;
+    } else {
+        val2 = registers[second_operand];
+    }
+
+    registers[out_reg] = val1 ^ val2;
+    return 0;
+}
+
+int execute_SLL(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                int second_immediate) {
+    int val1 = 0;
+    int val2 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        val2 = second_operand;
+    } else {
+        val2 = registers[second_operand];
+    }
+
+    registers[out_reg] = val1 << val2;
+    return 0;
+}
+
+int execute_SRL(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+                int second_immediate) {
+    int val1 = 0;
+    int val2 = 0;
+
+    if (first_immediate > 0) {
+        val1 = first_operand;
+    } else {
+        val1 = registers[first_operand];
+    }
+
+    if (second_immediate > 0) {
+        val2 = second_operand;
+    } else {
+        val2 = registers[second_operand];
+    }
+
+    registers[out_reg] = val1 >> val2;
+    return 0;
+}
+
+int execute_LBL(int *registers, int directive_index) {
+    char *directive = directives[directive_index];
+    int success = 0;
+    for (int i = 0; i < num_directives; ++i) {
+        if (strcmp(directives[i], directive) == 0) {
+            label_instruction_pos[i] = instruction_index;
+            success = 1;
+        }
+    }
+    if (success < 1) {
+        return -1;
+    }
+
+    return 0;
+}
+
+
+int execute_GOTO(int *registers, int directive_index) {
+    char *directive = directives[directive_index];
+    int success = 0;
+    for (int i = 0; i < num_directives; ++i) {
+        if (strcmp(directives[i], directive) == 0) {
+            int new_instruction_index = label_instruction_pos[i];
+            instruction_index = new_instruction_index;
+            success = 1;
+        }
+    }
+    if (success < 1) {
+        return -1;
+    }
+
+    return 1;
+}
+
+
+int execute_GEQ(int *registers, int out_reg, int second_operand, int second_immediate, int directive_index) {
+    int value1 = registers[out_reg];
+    int value2 = 0;
+    if (second_immediate) {
+        value2 = second_operand;
+    } else {
+        value2 = registers[second_operand];
+    }
+    if (value1 == value2) {
+        char *directive = directives[directive_index];
+        int success = 0;
+        for (int i = 0; i < num_directives; ++i) {
+            if (strcmp(directives[i], directive) == 0) {
+                int new_instruction_index = label_instruction_pos[i];
+                instruction_index = new_instruction_index;
+                success = 1;
+            }
+        }
+        if (success < 1) {
+            return -1;
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
+
+int execute_GNQ(int *registers, int out_reg, int second_operand, int second_immediate, int directive_index) {
+    int value1 = registers[out_reg];
+    int value2 = 0;
+    if (second_immediate) {
+        value2 = second_operand;
+    } else {
+        value2 = registers[second_operand];
+    }
+    if (value1 != value2) {
+        char *directive = directives[directive_index];
+        int success = 0;
+        for (int i = 0; i < num_directives; ++i) {
+            if (strcmp(directives[i], directive) == 0) {
+                int new_instruction_index = label_instruction_pos[i];
+                instruction_index = new_instruction_index;
+                success = 1;
+            }
+        }
+        if (success < 1) {
+            return -1;
+        }
+
+
+        return 1;
+    }
+    return 0;
+}
+
+int execute_PRINT(int *registers, int out_reg) {
+
+    printf("%d", registers[out_reg]);
+    return 0;
+}
+
+
+int execute_PRINTLN(int *registers, int out_reg) {
+
+    printf("%d\n", registers[out_reg]);
+    return 0;
+}
+
+
+int execute_HALT() {
+    exit(0);
+    return 0;
+}
+
+int execute_line(int opcode, int out_reg, int first_operand, int second_operand, int first_immediate,
+                 int second_immediate) {
+
+    if (opcode == 0) {
+        return execute_SR(registers, out_reg, first_operand, first_immediate);
+    } else if (opcode == 1) {
+        return execute_ADD(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 2) {
+        return execute_SUB(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 3) {
+        return execute_MULT(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 4) {
+        return execute_DIV(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 5) {
+        return execute_MOD(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 6) {
+        return execute_EQ(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 7) {
+        return execute_NEQ(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 8) {
+        return execute_GT(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 9) {
+        return execute_GTE(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 10) {
+        return execute_LT(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 11) {
+        return execute_LTE(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 12) {
+        return execute_AND(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 13) {
+        return execute_OR(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 14) {
+        return execute_NOT(registers, out_reg, first_operand, first_immediate);
+    } else if (opcode == 15) {
+        return execute_XOR(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 16) {
+        return execute_SLL(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 17) {
+        return execute_SRL(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+    } else if (opcode == 18) {
+        return execute_LBL(registers, out_reg);
+    } else if (opcode == 19) {
+        return execute_GOTO(registers, out_reg);
+    } else if (opcode == 20) {
+//        return "GEQ";
+        return execute_GEQ(registers, out_reg, first_operand, first_immediate, second_operand);
+    } else if (opcode == 21) {
+//        return "GNQ";
+        return execute_GNQ(registers, out_reg, first_operand, first_immediate, second_operand);
+    } else if (opcode == 22) {
+        return execute_PRINT(registers, out_reg);
+    } else if (opcode == 23) {
+        return execute_PRINTLN(registers, out_reg);
+    } else if (opcode == 24) {
+        return execute_HALT();
+    }
+    return -1;
+
+}
+
+void print_registers(int *registers) {
+
+    for (int i = 0; i < 10; ++i) {
+        printf("%d\t", registers[i]);
+    }
+    printf("\n");
+}
+
+int main(int argc, char *argv[]) {
+    char *input_path = NULL;
+    for (int i = 1; i < argc; ++i) {
+        char *arg = argv[i];
+
+        input_path = arg;
+
+    }
+
+    if (input_path == NULL) {
+        printf("Did not get SMBLY source file. Aborting!!!!");
+        return 1;
+    }
+
+
+    FILE *fp = fopen(input_path, "rb");
+    if (fp == NULL) {
+        printf("File %s cannot be read. Does it exist?\n", input_path);
+        return 1;
+    }
+
+    // Registers
+    for (int i = 0; i < 100; ++i) {
+        registers[i] = 0;
+    }
+
+
+    uint64_t section_identifier = 0;
+
+    while (fread(&section_identifier, 1, sizeof(section_identifier), fp) == 8) {
+
+
+        if (section_identifier == 0xFFFF0000FFFF0000L) {
+            // Directives section
+            int result = fread(&num_directives, 1, sizeof(num_directives), fp);
+            if (result != 8) {
+                return 1;
+            }
+            directives = malloc(sizeof(char *) * num_directives);
+            label_instruction_pos = malloc(sizeof(int) * num_directives);
+            int max_line_size = 30;
+            for (int directive_index = 0; directive_index < num_directives; ++directive_index) {
+                char c;
+                char *directive = (char *) malloc(max_line_size * sizeof(char));
+                int i = 0;
+                while ((c = getc(fp)) != '\0') {
+                    directive[i] = c;
+                    i++;
+                }
+                directive[i] = '\0';
+                directives[directive_index] = directive;
+            }
+
+        } else if (section_identifier == 0x0000FFFF0000FFFFL) {
+            // codes section
+            if (directives == NULL) {
+                return 1;
+            }
+
+            uint64_t code = 0;
+            int file_code_section_offset;
+            fgetpos(fp, &file_code_section_offset);
+//            printf("[DEBUG] file_code_section_offset=%d\n", file_code_section_offset);
+            while (fread(&code, 1, sizeof(code), fp) == 8) {
+                int opcode = ((code) & 0xFFFF000000000000L) >> 12 * 4;
+                int out_reg = ((code) & 0x0000FFFF00000000L) >> 8 * 4;
+                int first_operand = ((code) & 0x000000007FFF0000L) >> 4 * 4;
+                int second_operand = ((code) & 0x0000000000007FFFL) >> 0 * 4;
+
+                int first_immediate = ((code) & 0x0000000080000000L) >> 31;
+                int second_immediate = ((code) & 0x0000000000008000L) >> 15;
+
+//                printf("%s\t$%d\t", get_symbol_for_opcode(opcode), out_reg);
+//                if (first_immediate) {
+//                    printf("%d\t", first_operand);
+//                } else {
+//                    printf("$%d\t", first_operand);
+//                }
+//                if (second_immediate) {
+//                    printf("%d\t", second_operand);
+//                } else {
+//                    printf("$%d\t", second_operand);
+//                }
+//                printf("\n");
+
+
+
+                instruction_index++;
+
+                int result = execute_line(opcode, out_reg, first_operand, second_operand, first_immediate,
+                                          second_immediate);
+                if (result == -1) {
+                    //error
+                    printf("[ERROR] Encountered Runtime Error");
+                    exit(1);
+                }
+                if (result == 1) {
+                    // Need to jump to a new instruction index (GOTO was processed)
+                    fseek(fp, instruction_index * sizeof(code) + file_code_section_offset, SEEK_SET);
+                }
+
+            }
+
+
+        } else {
+            return 1;
+        }
+    }
+
+    free(directives);
+    free(label_instruction_pos);
+    return 0;
+}
+

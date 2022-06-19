@@ -1,0 +1,6 @@
+SR $1, 0
+LBL "loop"
+
+ADD $1, 1
+PRINTLN $1
+GOTO "loop"

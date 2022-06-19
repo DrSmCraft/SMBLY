@@ -1,0 +1,64 @@
+# This a comment
+
+# Set register 1 to value of 5
+SR $1, 5 # In-line comments are also supported
+# Set register 1 to value of register 3 (Copy Register)
+SR $1, $3
+
+# Add $3 and $5 and store that in $1
+ADD $1, $3, $5
+
+# Subtract $3 from $5 and store that in $1
+SUB $1, $3, $5
+
+# Multiply $3 and $5 and store that in $1
+MUL $1, $3, $5
+
+# Divide (get quotient) $3 and $5 and store that in $1
+SR $5, 2 # Set $5 to 2 to avoid Div by zero
+DIV $1, $3, $5
+
+# Modulo (get remainder ) $3 and $5 and store that in $1
+SR $5, 2 # Set $5 to 2 to avoid Mod by zero
+MOD $1, $3, $5
+
+# Print a string
+PRINT "Hello World"
+
+# Print a string with new line
+PRINTLN "Hello, World"
+
+# Print a register
+PRINT $1
+
+# Check if values are equal, put 1 into $1 if $2 and $3 are equal
+EQ $1, $2, $3
+
+# Check if values are equal, put 1 into $1 if $2 and $3 are not equal
+NEQ $1, $2, $3
+
+# Check if values are equal, put 1 into $1 if $2 is greater than $3
+GT $1, $2, $3
+
+# Check if values are equal, put 1 into $1 if $2 is greater than or equal to $3
+GTE $1, $2, $3
+
+# Check if values are equal, put 1 into $1 if $2 is less than $3
+LT $1, $2, $3
+
+# Check if values are equal, put 1 into $1 if $2 is less than or equal to $3
+LTE $1, $2, $3
+
+# A label
+LBL "myLabel"
+
+# Go to a label
+#GOTO "myLabel" # Have to keep this as a comment to avoid infinite loop
+
+# Branching
+GEQ $1, $2, "myLabel" # Branch and go to myLabel if value in $1 is equal to value in $2
+
+GNQ $1, $2, "myLabel" # Branch and go to myLabel if value in $1 is not equal to value in $2
+
+# End the program
+END
