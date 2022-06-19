@@ -225,78 +225,15 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
         token->pos = start_index;
         token->type = get_token_type(value);
 
-        if (token->type == -1) {
-            printf("[ERROR] Unknown command '%s' at line %d.\n", value, line_number + 1);
-            exit(1);
-        }
+//        if (token->type == -1) {
+//            printf("[ERROR] Unknown command '%s' at line %d.\n", value, line_number + 1);
+//            exit(1);
+//        }
         return index;
 
     }
     return -1;
 
-}
-
-struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
-    struct TokenNode *tokens;
-    struct TokenNode *head;
-
-
-    int token_index = 0;
-
-    *num_nodes = 0;
-    for (int i = 0; i < num_lines; i++) {
-        char *line = lines[i];
-        char *stripped_line = strip(line);
-
-        int length = strlen(stripped_line);
-        if (length <= 0) {
-            continue;
-        } else if (length == 1 && stripped_line[0] == '\0' || stripped_line[0] == '\n') {
-            printf("---Skipping line %d because of emptyness\n", i);
-            continue;
-        } else if (length > 1 && stripped_line[0] == '#') {
-            continue;
-        }
-
-        int index = 0;
-        while (index > -1 && index < length) {
-            struct Token *token = malloc(sizeof(struct Token));
-            index = parse_line(line, i, token, index);
-            if (tokens == NULL) {
-                tokens = malloc(sizeof(struct TokenNode));
-                tokens->prev = NULL;
-                tokens->next = NULL;
-                tokens->token = token;
-                head = tokens;
-
-            } else {
-                struct TokenNode *node = malloc(sizeof(struct TokenNode));
-                node->token = token;
-                node->prev = tokens;
-                tokens->next = node;
-                tokens = node;
-            }
-            token_index++;
-            (*num_nodes)++;
-
-        }
-        struct Token *token = malloc(sizeof(struct Token));
-        token->type = END_STATEMENT;
-        token->line = i;
-        token->pos = length - 1;
-        token->symbol = "ENDS";
-
-        struct TokenNode *node = malloc(sizeof(struct TokenNode));
-        node->token = token;
-        node->prev = tokens;
-        tokens->next = node;
-        tokens = node;
-        token_index++;
-        (*num_nodes)++;
-    }
-
-
-    return head;
 }
 
 uint64_t get_opcode_for_symbol(char *symbol) {
@@ -385,6 +322,85 @@ uint64_t get_opcode_for_symbol(char *symbol) {
 
 }
 
+struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
+    struct TokenNode *tokens;
+    struct TokenNode *head;
+
+
+    int token_index = 0;
+
+    *num_nodes = 0;
+    for (int i = 0; i < num_lines; i++) {
+        char *line = lines[i];
+        char *stripped_line = strip(line);
+
+        int length = strlen(stripped_line);
+        if (length <= 0) {
+            continue;
+        } else if (length == 1 && stripped_line[0] == '\0' || stripped_line[0] == '\n') {
+            printf("---Skipping line %d because of emptyness\n", i);
+            continue;
+        } else if (length > 1 && stripped_line[0] == '#') {
+            continue;
+        }
+
+        int index = 0;
+        while (index > -1 && index < length) {
+            struct Token *token = malloc(sizeof(struct Token));
+            index = parse_line(line, i, token, index);
+            if (tokens == NULL) {
+                tokens = malloc(sizeof(struct TokenNode));
+                tokens->prev = NULL;
+                tokens->next = NULL;
+                tokens->token = token;
+                head = tokens;
+
+            } else {
+                struct TokenNode *node = malloc(sizeof(struct TokenNode));
+                node->token = token;
+                node->prev = tokens;
+                tokens->next = node;
+                tokens = node;
+            }
+            token_index++;
+            (*num_nodes)++;
+
+        }
+        struct Token *token = malloc(sizeof(struct Token));
+        token->type = END_STATEMENT;
+        token->line = i;
+        token->pos = length - 1;
+        token->symbol = "ENDS";
+
+        struct TokenNode *node = malloc(sizeof(struct TokenNode));
+        node->token = token;
+        node->prev = tokens;
+        tokens->next = node;
+        tokens = node;
+        token_index++;
+        (*num_nodes)++;
+    }
+
+
+    return head;
+}
+
+int syntax_check(struct TokenNode *tokens, int num_nodes) {
+    struct TokenNode *finger = tokens;
+
+    int token_count = 0;
+    while (token_count < num_nodes - 1) {
+        if (finger->token->type == -1) {
+            printf("[ERROR] Unknown command '%s' at line %d.\n", finger->token->symbol, finger->token->line + 1);
+            exit(1);
+        }
+
+        finger = finger->next;
+        token_count++;
+    }
+    return 0;
+}
+
 void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
     printf("[COMPILER] Compiling...\n");
     uint64_t code = 0;
@@ -411,7 +427,6 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
             code |= ((opcode << (12 * 4)) & 0xFFFF000000000000L);
 
         } else if (token->type == END_STATEMENT) {
-//            fwrite(&code, 1, sizeof(code), output);
             codes[code_count] = code;
             argument_offset = 32L;
             code = 0;
@@ -466,7 +481,6 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
             } else {
                 directives[directive_index] = directive_str;
             }
-            printf("----directive_str=%s\n", directive_str);
 
             if (argument_offset == 32L) {
                 code |= (((uint64_t) directive_index << (8 * 4)) & 0x0000FFFF00000000L);
@@ -485,7 +499,6 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
 
 
     uint64_t section_separator = 0xFFFF0000FFFF0000L;
-//    printf("Num directives: %d\n", directive_count);
     fwrite(&section_separator, 1, sizeof(section_separator), output);
     uint64_t num_directives = (uint64_t) directive_count;
     fwrite(&num_directives, 1, sizeof(num_directives), output);
@@ -494,7 +507,6 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
         char *directive = directives[i];
         fwrite(directive, 1, strlen(directive), output);
         fwrite(&directive_separator, 1, sizeof(directive_separator), output);
-        printf("Writing %s %d\n", directive, strlen(directive));
 
     }
     section_separator = 0x0000FFFF0000FFFFL;
@@ -534,8 +546,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    printf("Found Input path %s\n", input_path);
-    printf("Found Output path %s\n", output_path);
+//    printf("Found Input path %s\n", input_path);
+//    printf("Found Output path %s\n", output_path);
 
     FILE *fp = fopen(input_path, "r");
     if (fp == NULL) {
@@ -621,6 +633,11 @@ int main(int argc, char *argv[]) {
 
     int num_nodes = 0;
     struct TokenNode *tokens = lexer(lines, num_lines, &num_nodes);
+    int syntax_check_result = syntax_check(tokens, num_nodes);
+    if (syntax_check_result != 0) {
+        exit(syntax_check_result);
+    }
+
     FILE *output_file;
     output_file = fopen(output_path, "wb");
 

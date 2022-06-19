@@ -531,8 +531,28 @@ int execute_HALT() {
     return 0;
 }
 
+/**
+ * Execute a line of code given the following parameters.
+ * @param opcode The operation code of the command
+ * @param out_reg The register the result will write to.
+ *                  It could also be the first operand if the syntax requires it.
+ *                  This  value must be a register index in ALL cases.
+ * @param first_operand The first operand. Could be a register or an immediate.
+ * @param second_operand The second operand. Could be a register or an immediate.
+ * @param first_immediate Delineates if the first operand is a register or immediate.
+ *                          If =0, then first operand is assumed to be a register.
+ *                          If > 1, then first operand is assumed to be an immediate.
+ * @param second_immediate Delineates if the second operand is a register or immediate.
+ *                          If =0, then second operand is assumed to be a register.
+ *                          If > 1, then second operand is assumed to be an immediate.
+ * @return Executed line status.
+ *          -1 means there is a runtime error
+ *          0 means the line was run successfully
+ *          1 means a jump is needed
+ */
 int execute_line(int opcode, int out_reg, int first_operand, int second_operand, int first_immediate,
                  int second_immediate) {
+
 
     if (opcode == 0) {
         return execute_SR(registers, out_reg, first_operand, first_immediate);
