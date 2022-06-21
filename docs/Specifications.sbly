@@ -57,8 +57,9 @@ LBL "myLabel"
 
 # Branching
 GEQ $1, $2, "myLabel" # Branch and go to myLabel if value in $1 is equal to value in $2
+GEQ $1, 2, "myLabel" # Branch and go to myLabel if value in $1 is equal to value in $2
 
 GNQ $1, $2, "myLabel" # Branch and go to myLabel if value in $1 is not equal to value in $2
 
 # End the program
-END
+HALT

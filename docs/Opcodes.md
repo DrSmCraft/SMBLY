@@ -1,12 +1,12 @@
 
 
 # Essential Operations
-| Operation     | Opcode |
-| ----------- | ----------- |
-| SR      | 0     |
+| Operation    | Opcode |
+| ---------- | ----------- |
+| SR     | 0     |
 | ADD   | 1        |
 | SUB   | 2       |
-| MULT   | 3        |
+| MUL   | 3        |
 | DIV   | 4        |
 | MOD   | 5        |
 | EQ   | 6        |

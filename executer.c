@@ -19,7 +19,7 @@ char *get_symbol_for_opcode(int opcode) {
     } else if (opcode == 2) {
         return "SUB";
     } else if (opcode == 3) {
-        return "MULT";
+        return "MUL";
     } else if (opcode == 4) {
         return "DIV";
     } else if (opcode == 5) {
@@ -116,7 +116,7 @@ int execute_SUB(int *registers, int out_reg, int first_operand, int second_opera
 }
 
 
-int execute_MULT(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+int execute_MUL(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
                  int second_immediate) {
     int sum = 0;
     if (first_immediate > 0) {
@@ -561,7 +561,7 @@ int execute_line(int opcode, int out_reg, int first_operand, int second_operand,
     } else if (opcode == 2) {
         return execute_SUB(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 3) {
-        return execute_MULT(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_MUL(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 4) {
         return execute_DIV(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 5) {
@@ -672,6 +672,7 @@ int main(int argc, char *argv[]) {
                 directives[directive_index] = directive;
             }
 
+
         } else if (section_identifier == 0x0000FFFF0000FFFFL) {
             // codes section
             if (directives == NULL) {
@@ -679,7 +680,7 @@ int main(int argc, char *argv[]) {
             }
 
             uint64_t code = 0;
-            int file_code_section_offset;
+            fpos_t file_code_section_offset;
             fgetpos(fp, &file_code_section_offset);
 //            printf("[DEBUG] file_code_section_offset=%d\n", file_code_section_offset);
             while (fread(&code, 1, sizeof(code), fp) == 8) {
