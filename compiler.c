@@ -455,6 +455,9 @@ char *get_token_type_from_int(int type) {
 }
 
 char *lstrip(char *string) {
+    if (string == NULL) {
+        return NULL;
+    }
     int length = strlen(string);
 
     int index = 0;
@@ -468,6 +471,10 @@ char *lstrip(char *string) {
 }
 
 char *rstrip(char *string) {
+    if (string == NULL) {
+        return NULL;
+    }
+
     int length = strlen(string);
 
     int index = length - 1;
@@ -581,6 +588,9 @@ int get_token_type(char *symbol) {
             index++;
         }
         return REGISTER;
+    }
+    if (upper_symbol[0] == '0' && upper_symbol[1] == 'X') {
+        return HEXIDECIMAL;
     }
 
     if (isdigit(upper_symbol[0])) {
@@ -755,6 +765,7 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
     *num_nodes = 0;
     for (int i = 0; i < num_lines; i++) {
         char *line = lines[i];
+        printf("---%d\n", strlen(line));
         char *stripped_line = strip(line);
 
         int length = strlen(stripped_line);
@@ -814,6 +825,10 @@ get_child_syntax_node_corresponding_to_token(struct TokenNode *token_node, struc
     for (int i = 0; i < MAX_SYNTAX_TREE_CHILDREN; ++i) {
         if (tree->children[i] == NULL) {
             continue;
+        } else if ((token_node->token->type == DECIMAL || token_node->token->type == HEXIDECIMAL) &&
+                   (tree->children[i]->type == DECIMAL || tree->children[i]->type == HEXIDECIMAL)) {
+            return tree->children[i];
+
         } else if (tree->children[i]->type == token_node->token->type) {
             return tree->children[i];
         }
@@ -831,7 +846,7 @@ int recursive_syntax_token_tree_check(struct TokenNode *finger, struct SyntaxTre
         found_node = get_child_syntax_node_corresponding_to_token(finger->next, found_node);
         if (found_node == NULL && finger->next->token->type != END_STATEMENT) {
             fprintf(stderr, "[ERROR] Unexpected token '%s' at line %d and pos %d\n", finger->next->token->symbol,
-                   finger->next->token->line + 1, finger->next->token->pos + 1);
+                    finger->next->token->line + 1, finger->next->token->pos + 1);
             return 1;
         } else if (found_node == NULL && finger->next->token->type == END_STATEMENT) {
 
@@ -846,8 +861,8 @@ int recursive_syntax_token_tree_check(struct TokenNode *finger, struct SyntaxTre
                 }
             }
             fprintf(stderr, "at line %d and pos %d\n",
-                   finger->token->line + 1,
-                   finger->token->pos + strlen(finger->token->symbol));
+                    finger->token->line + 1,
+                    finger->token->pos + strlen(finger->token->symbol));
             return 1;
         }
 
@@ -869,7 +884,7 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
     while (token_count < num_nodes - 1) {
         if (finger->token->type == -1) {
             fprintf(stderr, "[ERROR] Unknown command '%s' at line %d.\n", finger->token->symbol,
-                   finger->token->line + 1);
+                    finger->token->line + 1);
             return 1;
         } else if (finger->token->type == COMMAND) {
             struct SyntaxTreeNode tree = proper_syntax_tree[(int) get_opcode_for_symbol(finger->token->symbol)];
@@ -936,6 +951,19 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
         } else if (token->type == DECIMAL) {
 
             int immediate = atoi(token->symbol);
+
+            if (argument_offset == 32L) {
+                code |= (((uint64_t) immediate << (8 * 4)) & 0x0000FFFF00000000L);
+            } else if (argument_offset == 16L) {
+                code |= 0x0000000080000000L;
+                code |= (((uint64_t) immediate << (4 * 4)) & 0x000000007FFF0000L);
+            } else {
+                code |= 0x0000000000008000L;
+                code |= (((uint64_t) immediate << (0 * 4)) & 0x0000000000007FFFL);
+            }
+            argument_offset -= 16L;
+        } else if (token->type == HEXIDECIMAL) {
+            int immediate = strtol(token->symbol + 2, NULL, 16);
 
             if (argument_offset == 32L) {
                 code |= (((uint64_t) immediate << (8 * 4)) & 0x0000FFFF00000000L);
@@ -1087,22 +1115,12 @@ int main(int argc, char *argv[]) {
     // Read line by line
     int line_index = 0;
     while (fgets(line, max_line_size + 1, fp) != NULL) {
-//        int char_index;
-//        for (char_index = 0; char_index <= max_line_size; ++char_index) {
-////            if(line[char_index] == '\0' || line[char_index] == '\n'){
-////                break;
-////            }
-//            // Copy each character into lines array
-//            char c = line[char_index];
-//            lines[line_index][char_index] = c;
-////            printf("Copied %c into line %d index %d\n", line[char_index], line_index, char_index);
-//
-//        }
+
 
         if (line[strlen(line) - 1] == '\n') {
             line[strlen(line) - 1] = '\0';
         }
-//        printf("line: %d %s\n", strlen(line), line);
+        printf("line: %d %s\n", strlen(line), line);
 
         char *copied_line = malloc(strlen(line) * sizeof(char));
         strncpy(copied_line, line, strlen(line));
