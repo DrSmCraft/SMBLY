@@ -1,7 +1,9 @@
-SR $1, 10
+# Program that prints numbers 1 - 10 using directive jumps
+SR $1, 0 # Put zero int0 register 1
+LBL "loop"
 
-AND $2, $1, 1
-PRINT $2
-
-
-END
+ADD $1, $1, 1
+PRINTLN $1
+GTE $2, $1, 10
+GEQ $2, 0, "loop"
+HALT

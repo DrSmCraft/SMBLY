@@ -3,4 +3,6 @@ LBL "loop"
 
 ADD $1, 1
 PRINTLN $1
-GOTO "loop"
+GTE $2, $1, 10
+GNQ $2, 1, "loop"
+HALT

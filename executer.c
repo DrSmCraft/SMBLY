@@ -117,7 +117,7 @@ int execute_SUB(int *registers, int out_reg, int first_operand, int second_opera
 
 
 int execute_MUL(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
-                 int second_immediate) {
+                int second_immediate) {
     int sum = 0;
     if (first_immediate > 0) {
         sum = first_operand;
@@ -680,8 +680,8 @@ int main(int argc, char *argv[]) {
             }
 
             uint64_t code = 0;
-            fpos_t file_code_section_offset;
-            fgetpos(fp, &file_code_section_offset);
+            uint64_t file_code_section_offset;
+            file_code_section_offset = ftell(fp);
 //            printf("[DEBUG] file_code_section_offset=%d\n", file_code_section_offset);
             while (fread(&code, 1, sizeof(code), fp) == 8) {
                 int opcode = ((code) & 0xFFFF000000000000L) >> 12 * 4;

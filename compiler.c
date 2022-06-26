@@ -3,8 +3,18 @@
 #include <strings.h>
 #include <ctype.h>
 #include <stdint.h>
+#include <string.h>
 
 #define MAX_SYNTAX_TREE_CHILDREN 3
+
+char *strupr(char *input) {
+    int length = strlen(input);
+    for (int i = 0; i < length; ++i) {
+        toupper(input[i]);
+    }
+    return input;
+}
+
 enum Command {
     SR = 0,
     ADD = 1,
@@ -437,6 +447,13 @@ struct SyntaxTreeNode proper_syntax_tree[26] = {
         },
 };
 
+int silent_mode = 0;
+int verbose_mode = 0;
+
+
+char *output_path = "out.s";
+char *input_path = NULL;
+
 char *get_token_type_from_int(int type) {
     if (type == COMMAND) {
         return "COMMAND";
@@ -582,7 +599,8 @@ int get_token_type(char *symbol) {
     if (upper_symbol[0] == '$') {
         int index = 1;
         while (index < strlen(upper_symbol)) {
-            if (isdigit(upper_symbol[index]) != 1) {
+
+            if (isdigit(upper_symbol[index]) <= 0) {
                 return -1;
             }
             index++;
@@ -593,10 +611,10 @@ int get_token_type(char *symbol) {
         return HEXIDECIMAL;
     }
 
-    if (isdigit(upper_symbol[0])) {
+    if (isdigit(upper_symbol[0]) > 0) {
         int index = 1;
         while (index < strlen(upper_symbol)) {
-            if (isdigit(upper_symbol[index]) != 1) {
+            if (isdigit(upper_symbol[index]) <= 0) {
                 return -1;
             }
             index++;
@@ -626,16 +644,18 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
 
     // While the whole line is not processed
     while (line[index] != '\0' && line[index] != '\n') {
-        // If the first character is quotes, then find the ending quote
         if (line[index] == '"') {
+            // If the first character is quotes, then find the ending quote
             index++;
             while (line[index] != '"') {
                 index++;
             }
             index++;
-        }
+        } else if (line[index] == '#') {
+            // If the line has hashtag (#), then ignore the rest of the line
+            return -1;
+        } else {
             // Find the beginning of the next token
-        else {
             while (line[index] != ' ' && line[index] != ',' && line[index] != '\0' && line[index] != '\n') {
                 index++;
             }
@@ -648,7 +668,7 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
 
         // Find the beginning of the next token
         while (isalnum(line[index]) == 0 && line[index] != '$' && line[index] != '"') {
-            if (line[index] == '\0' || line[index] == '\n') {
+            if (line[index] == '\0' || line[index] == '\n' || line[index] == '#') {
                 break;
             }
             index++;
@@ -756,7 +776,8 @@ uint64_t get_opcode_for_symbol(char *symbol) {
 }
 
 struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
-    printf("[Lexer] Lexing started...\n");
+    if (!silent_mode)
+        printf("[Lexer] Lexing started...\n");
     struct TokenNode *tokens;
     struct TokenNode *head;
 
@@ -765,7 +786,6 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
     *num_nodes = 0;
     for (int i = 0; i < num_lines; i++) {
         char *line = lines[i];
-        printf("---%d\n", strlen(line));
         char *stripped_line = strip(line);
 
         int length = strlen(stripped_line);
@@ -790,11 +810,13 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
                 head = tokens;
 
             } else {
-                struct TokenNode *node = malloc(sizeof(struct TokenNode));
-                node->token = token;
-                node->prev = tokens;
-                tokens->next = node;
-                tokens = node;
+                if (index > -1) {
+                    struct TokenNode *node = malloc(sizeof(struct TokenNode));
+                    node->token = token;
+                    node->prev = tokens;
+                    tokens->next = node;
+                    tokens = node;
+                }
             }
             token_index++;
             (*num_nodes)++;
@@ -815,13 +837,17 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
         (*num_nodes)++;
     }
 
-    printf("[Lexer] Lexing Finished\n");
+    if (!silent_mode)
+        printf("[Lexer] Lexing Finished\n");
     return head;
 }
 
 struct SyntaxTreeNode *
 get_child_syntax_node_corresponding_to_token(struct TokenNode *token_node, struct SyntaxTreeNode *tree) {
 
+    if (tree == NULL) {
+        return NULL;
+    }
     for (int i = 0; i < MAX_SYNTAX_TREE_CHILDREN; ++i) {
         if (tree->children[i] == NULL) {
             continue;
@@ -837,33 +863,40 @@ get_child_syntax_node_corresponding_to_token(struct TokenNode *token_node, struc
     return NULL;
 }
 
-int recursive_syntax_token_tree_check(struct TokenNode *finger, struct SyntaxTreeNode *tree) {
-
+int iterative_syntax_token_tree_check(struct TokenNode *finger, struct SyntaxTreeNode *tree) {
+    int syntax_check_result = 0;
     struct SyntaxTreeNode *found_node = tree;
     struct SyntaxTreeNode *prev = NULL;
     while (finger->token->type != END_STATEMENT) {
         prev = found_node;
         found_node = get_child_syntax_node_corresponding_to_token(finger->next, found_node);
         if (found_node == NULL && finger->next->token->type != END_STATEMENT) {
-            fprintf(stderr, "[ERROR] Unexpected token '%s' at line %d and pos %d\n", finger->next->token->symbol,
-                    finger->next->token->line + 1, finger->next->token->pos + 1);
-            return 1;
+            if (!silent_mode)
+                fprintf(stderr, "[ERROR] File %s:%d:%d\n\t\t\tUnexpected token '%s' at line %d and pos %d\n",
+                        input_path, finger->next->token->line + 1, finger->next->token->pos + 1,
+                        finger->next->token->symbol,
+                        finger->next->token->line + 1, finger->next->token->pos + 1);
+            syntax_check_result = 1;
         } else if (found_node == NULL && finger->next->token->type == END_STATEMENT) {
+            if (!silent_mode && prev != NULL) {
 
-            fprintf(stderr, "[ERROR] Expected a ");
-            for (int i = 0; i < MAX_SYNTAX_TREE_CHILDREN; ++i) {
-                if (prev->children[i] == NULL) {
-                    continue;
+                fprintf(stderr, "[ERROR] File %s:%d:%d\n\t\t\tExpected a ", input_path, finger->next->token->line + 1,
+                        finger->next->token->pos + 1);
+                for (int i = 0; i < MAX_SYNTAX_TREE_CHILDREN; ++i) {
+                    if (prev->children[i] == NULL) {
+                        continue;
+                    }
+                    fprintf(stderr, "%s ", get_token_type_from_int(prev->children[i]->type));
+                    if (i < MAX_SYNTAX_TREE_CHILDREN - 1 && prev->children[i + 1] != NULL) {
+                        fprintf(stderr, "or ");
+                    }
                 }
-                fprintf(stderr, "%s ", get_token_type_from_int(prev->children[i]->type));
-                if (i < MAX_SYNTAX_TREE_CHILDREN - 1 && prev->children[i + 1] != NULL) {
-                    fprintf(stderr, "or ");
-                }
+
+                fprintf(stderr, "at line %d and pos %d\n",
+                        finger->token->line + 1,
+                        finger->token->pos + strlen(finger->token->symbol));
             }
-            fprintf(stderr, "at line %d and pos %d\n",
-                    finger->token->line + 1,
-                    finger->token->pos + strlen(finger->token->symbol));
-            return 1;
+            syntax_check_result = 1;
         }
 
 
@@ -871,11 +904,13 @@ int recursive_syntax_token_tree_check(struct TokenNode *finger, struct SyntaxTre
 
     }
 
-    return 0;
+    return syntax_check_result;
 }
 
 int syntax_check(struct TokenNode *tokens, int num_nodes) {
-    printf("[Lexer] Syntax Checking...\n");
+    int syntax_check_result = 0;
+    if (!silent_mode)
+        printf("[Lexer] Syntax Checking...\n");
 
     struct TokenNode *finger = tokens;
     int token_count = 0;
@@ -883,27 +918,31 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
 
     while (token_count < num_nodes - 1) {
         if (finger->token->type == -1) {
-            fprintf(stderr, "[ERROR] Unknown command '%s' at line %d.\n", finger->token->symbol,
-                    finger->token->line + 1);
-            return 1;
+            if (!silent_mode)
+                fprintf(stderr, "[ERROR] Unknown command '%s' at line %d.\n", finger->token->symbol,
+                        finger->token->line + 1);
+            syntax_check_result = 1;
         } else if (finger->token->type == COMMAND) {
             struct SyntaxTreeNode tree = proper_syntax_tree[(int) get_opcode_for_symbol(finger->token->symbol)];
-            int result = recursive_syntax_token_tree_check(finger, &tree);
+            int result = iterative_syntax_token_tree_check(finger, &tree);
             if (result != 0) {
-                return result;
+                syntax_check_result = result;
             }
         }
 
         finger = finger->next;
         token_count++;
     }
-    printf("[Lexer] Syntax Check Finished...\n");
+    if (!silent_mode)
 
-    return 0;
+        printf("[Lexer] Syntax Check Finished...\n");
+
+    return syntax_check_result;
 }
 
 void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
-    printf("[COMPILER] Compiling...\n");
+    if (!silent_mode)
+        printf("[COMPILER] Compiling...\n");
     uint64_t code = 0;
     long argument_offset = 32L;
     struct TokenNode *finger = tokens;
@@ -1029,33 +1068,53 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
         code = codes[i];
         fwrite(&code, 1, sizeof(code), output);
     }
-    printf("[COMPILER] Compiled\n");
+    if (!silent_mode)
+        printf("[COMPILER] Compiled\n");
 
 }
 
-
 int main(int argc, char *argv[]) {
     int output_path_next = 0;
-    char *output_path = "out.s";
-    char *input_path = NULL;
+
     for (int i = 1; i < argc; ++i) {
         char *arg = argv[i];
-
-
-        if (strcmp(arg, "-o") == 0) {
+        if (strcmp(arg, "-o") == 0 || strcmp(arg, "--output") == 0) {
             output_path_next = 1;
             continue;
         } else if (output_path_next) {
             output_path = arg;
             output_path_next = 0;
             continue;
+        } else if (strcmp(arg, "-h") == 0 || strcmp(arg, "-?") == 0 || strcmp(arg, "--help") == 0) {
+            printf("  _____  __  __  ____   _      __     __   _____                           _  _             \n"
+                   " / ____||  \\/  ||  _ \\ | |     \\ \\   / /  / ____|                         (_)| |            \n"
+                   "| (___  | \\  / || |_) || |      \\ \\_/ /  | |       ___   _ __ ___   _ __   _ | |  ___  _ __ \n"
+                   " \\___ \\ | |\\/| ||  _ < | |       \\   /   | |      / _ \\ | '_ ` _ \\ | '_ \\ | || | / _ \\| '__|\n"
+                   " ____) || |  | || |_) || |____    | |    | |____ | (_) || | | | | || |_) || || ||  __/| |   \n"
+                   "|_____/ |_|  |_||____/ |______|   |_|     \\_____| \\___/ |_| |_| |_|| .__/ |_||_| \\___||_|   \n"
+                   "                                                                   | |                      \n"
+                   "                                                                   |_|                      \n");
+            printf("Usage: SMBLY-C inputFile [options]\n\n");
+            printf("Options:\n");
+            printf("-h, --help\t\t\t\tShow this help message\n");
+            printf("-o outputFile,\t\t\tStore the compiled code in the given file\n");
+            printf("\t--output outputFile\n");
+            printf("-s, --silent\t\t\tDo not show any messages from the compiler\n");
+            printf("-v, --verbose\t\t\tShow all messages from the compiler\n");
+
+            return 0;
+        } else if (strcmp(arg, "-s") == 0 || strcmp(arg, "--silent") == 0) {
+            silent_mode = 1;
+        } else if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0) {
+            verbose_mode = 1;
         } else {
             input_path = arg;
         }
     }
 
     if (input_path == NULL) {
-        printf("Did not get SMBLY source file. Aborting!!!!");
+        if (!silent_mode)
+            printf("Did not get SMBLY source file. Aborting!!!!");
         return 1;
     }
 
@@ -1064,7 +1123,8 @@ int main(int argc, char *argv[]) {
 
     FILE *fp = fopen(input_path, "r");
     if (fp == NULL) {
-        printf("File %s cannot be read. Does it exist?\n", input_path);
+        if (!silent_mode)
+            printf("File %s cannot be read. Does it exist?\n", input_path);
         return 1;
     }
 
@@ -1090,55 +1150,59 @@ int main(int argc, char *argv[]) {
         max_line_size = line_size + 1;
     }
     max_line_size++;
-    printf("[READER] Num lines: %d\n", num_lines);
-    printf("[READER] Max line size: %d\n", max_line_size);
-    printf("[READER] Line size: %d\n", line_size);
-
+    if (!silent_mode) {
+        printf("[READER] Num lines: %d\n", num_lines);
+        printf("[READER] Max line size: %d\n", max_line_size);
+        printf("[READER] Line size: %d\n", line_size);
+    }
     // Go back to beginning of the file
     fseek(fp, 0, SEEK_SET);
 
     // Create buffers for lines
     char *line = (char *) malloc(max_line_size);
     if (!line) {
-        fprintf(stderr, "[ERROR] Could not allocate memory for line with size %d\n", max_line_size);
+        if (!silent_mode)
+
+            fprintf(stderr, "[ERROR] Could not allocate memory for line with size %d\n", max_line_size);
         exit(1);
     }
 
     char **lines = (char **) malloc(num_lines * sizeof(char *));
     if (!lines) {
-        fprintf(stderr, "[ERROR] Could not allocate memory for lines with size %d\n", num_lines * sizeof(char *));
-        exit(1);
+        if (!silent_mode)
+            fprintf(stderr, "[ERROR] Could not allocate memory for lines with size %d\n", num_lines * sizeof(char *));
+        return 1;
     }
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < num_lines; ++i) {
         lines[i] = (char *) malloc(max_line_size * sizeof(char));
+        lines[i][0] = '\0';
     }
     // Read line by line
     int line_index = 0;
     while (fgets(line, max_line_size + 1, fp) != NULL) {
 
+        int length = strlen(line);
 
-        if (line[strlen(line) - 1] == '\n') {
-            line[strlen(line) - 1] = '\0';
+        if (line[length - 1] == '\n') {
+            line[length - 1] = '\0';
         }
-        printf("line: %d %s\n", strlen(line), line);
 
-        char *copied_line = malloc(strlen(line) * sizeof(char));
-        strncpy(copied_line, line, strlen(line));
-        copied_line[strlen(line)] = '\0';
+        char *copied_line = malloc(length * sizeof(char));
+        strncpy(copied_line, line, length);
+        copied_line[length] = '\0';
 
         lines[line_index] = copied_line;
-//        printf("Got %d %s\n-------\n", strlen(copied_line), copied_line);
         line_index++;
     }
 //    free(line);
 
-//    printf("[READER]Last line %s\n",  lines[num_lines-1]);
 
     int num_nodes = 0;
     struct TokenNode *tokens = lexer(lines, num_lines, &num_nodes);
     int syntax_check_result = syntax_check(tokens, num_nodes);
     if (syntax_check_result != 0) {
-        fprintf(stderr, "[STATUS] Building Failed\n");
+        if (!silent_mode)
+            fprintf(stderr, "[STATUS] Building Failed\n");
         exit(syntax_check_result);
     }
 
