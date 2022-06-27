@@ -653,6 +653,9 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
             index++;
         } else if (line[index] == '#') {
             // If the line has hashtag (#), then ignore the rest of the line
+            if (verbose_mode)
+                printf("[LEXER] Ignoring line %d at position %d because of a inline comment\n", line_number + 1,
+                       index + 1);
             return -1;
         } else {
             // Find the beginning of the next token
@@ -673,12 +676,15 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
             }
             index++;
         }
+
         // Store data in token structure
         token->type = get_token_type(value);
         token->symbol = value;
         token->line = line_number;
         token->pos = start_index;
-
+        if (verbose_mode)
+            printf("[LEXER] Read Token %s, classifying it as a %s\n", value,
+                   get_token_type_from_int(get_token_type(value)));
         return index;
 
     }
@@ -777,7 +783,7 @@ uint64_t get_opcode_for_symbol(char *symbol) {
 
 struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
     if (!silent_mode)
-        printf("[Lexer] Lexing started...\n");
+        printf("[LEXER] Lexing started...\n");
     struct TokenNode *tokens;
     struct TokenNode *head;
 
@@ -792,15 +798,22 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
         if (length <= 0) {
             continue;
         } else if (length == 1 && stripped_line[0] == '\0' || stripped_line[0] == '\n') {
-//            printf("---Skipping line %d because of emptyness\n", i);
+            if (verbose_mode)
+                printf("[LEXER] Skipping line %d because of emptyness\n", i + 1);
             continue;
         } else if (length > 1 && stripped_line[0] == '#') {
+            if (verbose_mode)
+                printf("[LEXER] Skipping line %d because of comment\n", i + 1);
             continue;
         }
 
         int index = 0;
+        if (verbose_mode)
+            printf("[LEXER] Parsing line %d\n", i + 1);
+
         while (index > -1 && index < length) {
             struct Token *token = malloc(sizeof(struct Token));
+
             index = parse_line(line, i, token, index);
             if (tokens == NULL) {
                 tokens = malloc(sizeof(struct TokenNode));
@@ -838,7 +851,7 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
     }
 
     if (!silent_mode)
-        printf("[Lexer] Lexing Finished\n");
+        printf("[LEXER] Lexing Finished\n");
     return head;
 }
 
@@ -910,7 +923,7 @@ int iterative_syntax_token_tree_check(struct TokenNode *finger, struct SyntaxTre
 int syntax_check(struct TokenNode *tokens, int num_nodes) {
     int syntax_check_result = 0;
     if (!silent_mode)
-        printf("[Lexer] Syntax Checking...\n");
+        printf("[LEXER] Syntax Checking...\n");
 
     struct TokenNode *finger = tokens;
     int token_count = 0;
@@ -924,6 +937,9 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
             syntax_check_result = 1;
         } else if (finger->token->type == COMMAND) {
             struct SyntaxTreeNode tree = proper_syntax_tree[(int) get_opcode_for_symbol(finger->token->symbol)];
+            if (verbose_mode)
+                printf("[LEXER] Running Syntax Check for command %s at line %d\n", finger->token->symbol,
+                       finger->token->line + 1);
             int result = iterative_syntax_token_tree_check(finger, &tree);
             if (result != 0) {
                 syntax_check_result = result;
@@ -935,7 +951,7 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
     }
     if (!silent_mode)
 
-        printf("[Lexer] Syntax Check Finished...\n");
+        printf("[LEXER] Syntax Check Finished...\n");
 
     return syntax_check_result;
 }
@@ -968,9 +984,11 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
 
         } else if (token->type == END_STATEMENT) {
             codes[code_count] = code;
+
             argument_offset = 32L;
             code = 0;
             code_count++;
+
 
         } else if (token->type == REGISTER) {
             int len = strlen(token->symbol);
@@ -1053,22 +1071,35 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
     uint64_t section_separator = 0xFFFF0000FFFF0000L;
     fwrite(&section_separator, 1, sizeof(section_separator), output);
     uint64_t num_directives = (uint64_t) directive_count;
+    if (verbose_mode)
+        printf("[COMPILER] Starting directive section...\n");
     fwrite(&num_directives, 1, sizeof(num_directives), output);
     char directive_separator = '\0';
     for (int i = 0; i < directive_count; ++i) {
         char *directive = directives[i];
+        if (verbose_mode)
+            printf("[COMPILER] Writing directive %s to file\n", directive);
         fwrite(directive, 1, strlen(directive), output);
         fwrite(&directive_separator, 1, sizeof(directive_separator), output);
 
+    }
+    if (verbose_mode) {
+        printf("[COMPILER] Finished directive section\n");
+        printf("[COMPILER] Starting codes section...\n");
     }
     section_separator = 0x0000FFFF0000FFFFL;
     fwrite(&section_separator, 1, sizeof(section_separator), output);
 
     for (int i = 0; i < code_count; ++i) {
         code = codes[i];
+        if (verbose_mode)
+            printf("[COMPILER] Writing code %lu to file\n", code);
         fwrite(&code, 1, sizeof(code), output);
     }
+    if(verbose_mode)
+        printf("[COMPILER] Finished codes section\n");
     if (!silent_mode)
+
         printf("[COMPILER] Compiled\n");
 
 }
@@ -1150,7 +1181,7 @@ int main(int argc, char *argv[]) {
         max_line_size = line_size + 1;
     }
     max_line_size++;
-    if (!silent_mode) {
+    if (!silent_mode && verbose_mode) {
         printf("[READER] Num lines: %d\n", num_lines);
         printf("[READER] Max line size: %d\n", max_line_size);
         printf("[READER] Line size: %d\n", line_size);

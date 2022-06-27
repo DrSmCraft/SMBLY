@@ -10,6 +10,9 @@ int registers[100];
 int instruction_index = 0;
 char **directives = NULL;
 int *label_instruction_pos = NULL;
+char *input_path = NULL;
+int silent_mode = 0;
+int verbose_mode = 0;
 
 char *get_symbol_for_opcode(int opcode) {
     if (opcode == 0) {
@@ -620,12 +623,39 @@ void print_registers(int *registers) {
 }
 
 int main(int argc, char *argv[]) {
-    char *input_path = NULL;
     for (int i = 1; i < argc; ++i) {
         char *arg = argv[i];
 
         input_path = arg;
 
+    }
+
+
+    for (int i = 1; i < argc; ++i) {
+        char *arg = argv[i];
+        if (strcmp(arg, "-h") == 0 || strcmp(arg, "-?") == 0 || strcmp(arg, "--help") == 0) {
+            printf("  _____  __  __  ____   _      __     __   _____                           _  _             \n"
+                   " / ____||  \\/  ||  _ \\ | |     \\ \\   / /  / ____|                         (_)| |            \n"
+                   "| (___  | \\  / || |_) || |      \\ \\_/ /  | |       ___   _ __ ___   _ __   _ | |  ___  _ __ \n"
+                   " \\___ \\ | |\\/| ||  _ < | |       \\   /   | |      / _ \\ | '_ ` _ \\ | '_ \\ | || | / _ \\| '__|\n"
+                   " ____) || |  | || |_) || |____    | |    | |____ | (_) || | | | | || |_) || || ||  __/| |   \n"
+                   "|_____/ |_|  |_||____/ |______|   |_|     \\_____| \\___/ |_| |_| |_|| .__/ |_||_| \\___||_|   \n"
+                   "                                                                   | |                      \n"
+                   "                                                                   |_|                      \n");
+            printf("Usage: SMBLY inputFile [options]\n\n");
+            printf("Options:\n");
+            printf("-h, --help\t\t\t\tShow this help message\n");
+            printf("-s, --silent\t\t\tDo not show any messages from the compiler\n");
+            printf("-v, --verbose\t\t\tShow all messages from the compiler\n");
+
+            return 0;
+        } else if (strcmp(arg, "-s") == 0 || strcmp(arg, "--silent") == 0) {
+            silent_mode = 1;
+        } else if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0) {
+            verbose_mode = 1;
+        } else {
+            input_path = arg;
+        }
     }
 
     if (input_path == NULL) {

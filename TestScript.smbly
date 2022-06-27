@@ -1,5 +1,6 @@
 # Program that prints numbers 1 - 10 using directive jumps
-SR $1, 0 # Put zero int0 register 1
+PRINTLN "TestScript.smbly"
+SR $1, 0 # Put zero into register 1
 LBL "loop"
 
 ADD $1, $1, 1
