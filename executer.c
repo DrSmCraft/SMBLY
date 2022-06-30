@@ -65,6 +65,8 @@ char *get_symbol_for_opcode(int opcode) {
         return "PRINTLN";
     } else if (opcode == 24) {
         return "HALT";
+    } else if (opcode == 25) {
+        return "INPUT";
     }
 
     return NULL;
@@ -515,19 +517,31 @@ int execute_GNQ(int *registers, int out_reg, int second_operand, int second_imme
     return 0;
 }
 
-int execute_PRINT(int *registers, int out_reg) {
+int execute_PRINT(int *registers, int out_reg, int first_immediate) {
+    if (first_immediate) {
+        printf("%s", directives[out_reg]);
 
-    printf("%d", registers[out_reg]);
+    } else {
+        printf("%d", registers[out_reg]);
+    }
     return 0;
 }
 
 
-int execute_PRINTLN(int *registers, int out_reg) {
+int execute_PRINTLN(int *registers, int out_reg, int first_immediate) {
+    if (first_immediate) {
+        printf("%s\n", directives[out_reg]);
 
-    printf("%d\n", registers[out_reg]);
+    } else {
+        printf("%d\n", registers[out_reg]);
+    }
     return 0;
 }
 
+int execute_INPUT(int *registers, int out_reg) {
+    scanf("%d", &(registers[out_reg]));
+    return 0;
+}
 
 int execute_HALT() {
     exit(0);
@@ -604,11 +618,13 @@ int execute_line(int opcode, int out_reg, int first_operand, int second_operand,
 //        return "GNQ";
         return execute_GNQ(registers, out_reg, first_operand, first_immediate, second_operand);
     } else if (opcode == 22) {
-        return execute_PRINT(registers, out_reg);
+        return execute_PRINT(registers, out_reg, first_immediate);
     } else if (opcode == 23) {
-        return execute_PRINTLN(registers, out_reg);
+        return execute_PRINTLN(registers, out_reg, first_immediate);
     } else if (opcode == 24) {
         return execute_HALT();
+    } else if (opcode == 25) {
+        return execute_INPUT(registers, out_reg);
     }
     return -1;
 
@@ -713,6 +729,7 @@ int main(int argc, char *argv[]) {
             uint64_t file_code_section_offset;
             file_code_section_offset = ftell(fp);
 //            printf("[DEBUG] file_code_section_offset=%d\n", file_code_section_offset);
+// TODO first scan file for directives then execute instructions
             while (fread(&code, 1, sizeof(code), fp) == 8) {
                 int opcode = ((code) & 0xFFFF000000000000L) >> 12 * 4;
                 int out_reg = ((code) & 0x0000FFFF00000000L) >> 8 * 4;

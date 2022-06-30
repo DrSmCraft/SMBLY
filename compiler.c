@@ -418,21 +418,19 @@ struct SyntaxTreeNode proper_syntax_tree[26] = {
                 }}, &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}, NULL}},
         { /* PRINT */
                 .type = COMMAND, .children =  {
-                &(struct SyntaxTreeNode) {.type=DECIMAL, .children={
-                        &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                 &(struct SyntaxTreeNode) {.type=REGISTER, .children={
                         &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                 &(struct SyntaxTreeNode) {.type=DIRECTIVE, .children={
-                        &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}}}
+                        &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
+                NULL}
         },
         { /* PRINTLN */
                 .type = COMMAND, .children =  {
-                &(struct SyntaxTreeNode) {.type=DECIMAL, .children={
-                        &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                 &(struct SyntaxTreeNode) {.type=REGISTER, .children={
                         &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                 &(struct SyntaxTreeNode) {.type=DIRECTIVE, .children={
-                        &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}}}
+                        &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
+                NULL}
         },
         { /* HALT */
                 .type = COMMAND, .children =  {
@@ -594,6 +592,9 @@ int get_token_type(char *symbol) {
         return COMMAND;
     }
     if (strcmp(upper_symbol, "HALT") == 0) {
+        return COMMAND;
+    }
+    if (strcmp(upper_symbol, "INPUT") == 0) {
         return COMMAND;
     }
     if (upper_symbol[0] == '$') {
@@ -1054,11 +1055,15 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
 
             if (argument_offset == 32L) {
                 code |= (((uint64_t) directive_index << (8 * 4)) & 0x0000FFFF00000000L);
+                code |= 0x0000000080000000L;
             } else if (argument_offset == 16L) {
+                code |= 0x0000000080000000L;
                 code |= (((uint64_t) directive_index << (4 * 4)) & 0x000000007FFF0000L);
             } else {
+                code |= 0x0000000000008000L;
                 code |= (((uint64_t) directive_index << (0 * 4)) & 0x0000000000007FFFL);
             }
+            argument_offset -= 16L;
 
 //            free(directive_str);
 
@@ -1096,7 +1101,7 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
             printf("[COMPILER] Writing code %lu to file\n", code);
         fwrite(&code, 1, sizeof(code), output);
     }
-    if(verbose_mode)
+    if (verbose_mode)
         printf("[COMPILER] Finished codes section\n");
     if (!silent_mode)
 
