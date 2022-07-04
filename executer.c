@@ -83,98 +83,98 @@ int execute_SR(int *registers, int out_reg, int first_operand, int first_immedia
 
 int execute_ADD(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
-    int sum = 0;
+    int result = 0;
     if (first_immediate > 0) {
-        sum = first_operand;
+        result = first_operand;
     } else {
-        sum = registers[first_operand];
+        result = registers[first_operand];
     }
 
     if (second_immediate > 0) {
-        sum += second_operand;
+        result += second_operand;
     } else {
-        sum += registers[second_operand];
+        result += registers[second_operand];
     }
 
-    registers[out_reg] = sum;
+    registers[out_reg] = result;
     return 0;
 }
 
 
 int execute_SUB(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
-    int sum = 0;
+    int result = 0;
     if (first_immediate > 0) {
-        sum = first_operand;
+        result = first_operand;
     } else {
-        sum = registers[first_operand];
+        result = registers[first_operand];
     }
 
     if (second_immediate > 0) {
-        sum -= second_operand;
+        result -= second_operand;
     } else {
-        sum -= registers[second_operand];
+        result -= registers[second_operand];
     }
 
-    registers[out_reg] = sum;
+    registers[out_reg] = result;
     return 0;
 }
 
 
 int execute_MUL(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
-    int sum = 0;
+    int result = 0;
     if (first_immediate > 0) {
-        sum = first_operand;
+        result = first_operand;
     } else {
-        sum = registers[first_operand];
+        result = registers[first_operand];
     }
 
     if (second_immediate > 0) {
-        sum *= second_operand;
+        result *= second_operand;
     } else {
-        sum *= registers[second_operand];
+        result *= registers[second_operand];
     }
 
-    registers[out_reg] = sum;
+    registers[out_reg] = result;
     return 0;
 }
 
 int execute_DIV(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
-    int sum = 0;
+    int result = 0;
     if (first_immediate > 0) {
-        sum = first_operand;
+        result = first_operand;
     } else {
-        sum = registers[first_operand];
+        result = registers[first_operand];
     }
 
     if (second_immediate > 0) {
-        sum /= second_operand;
+        result /= second_operand;
     } else {
-        sum /= registers[second_operand];
+        result /= registers[second_operand];
     }
 
-    registers[out_reg] = sum;
+    registers[out_reg] = result;
     return 0;
 }
 
 int execute_MOD(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
-    int sum = 0;
+    int result = 0;
     if (first_immediate > 0) {
-        sum = first_operand;
+        result = first_operand;
     } else {
-        sum = registers[first_operand];
+        result = registers[first_operand];
     }
 
     if (second_immediate > 0) {
-        sum %= second_operand;
+        result %= second_operand;
     } else {
-        sum %= registers[second_operand];
+        result %= registers[second_operand];
     }
 
-    registers[out_reg] = sum;
+    registers[out_reg] = result;
     return 0;
 }
 
@@ -728,8 +728,23 @@ int main(int argc, char *argv[]) {
             uint64_t code = 0;
             uint64_t file_code_section_offset;
             file_code_section_offset = ftell(fp);
-//            printf("[DEBUG] file_code_section_offset=%d\n", file_code_section_offset);
-// TODO first scan file for directives then execute instructions
+
+            // First scan file for directives then execute instructions
+            while (fread(&code, 1, sizeof(code), fp) == 8) {
+                int opcode = ((code) & 0xFFFF000000000000L) >> 12 * 4;
+                int out_reg = ((code) & 0x0000FFFF00000000L) >> 8 * 4;
+
+                if (opcode == 18) {
+                    // Processing a LBL, save the directive to directives array
+                    execute_LBL(registers, out_reg);
+                }
+                instruction_index++;
+
+            }
+
+            fseek(fp, file_code_section_offset, SEEK_SET);
+            instruction_index = 0;
+            // Now, Read through the file and execute the commands
             while (fread(&code, 1, sizeof(code), fp) == 8) {
                 int opcode = ((code) & 0xFFFF000000000000L) >> 12 * 4;
                 int out_reg = ((code) & 0x0000FFFF00000000L) >> 8 * 4;
@@ -739,23 +754,13 @@ int main(int argc, char *argv[]) {
                 int first_immediate = ((code) & 0x0000000080000000L) >> 31;
                 int second_immediate = ((code) & 0x0000000000008000L) >> 15;
 
-//                printf("%s\t$%d\t", get_symbol_for_opcode(opcode), out_reg);
-//                if (first_immediate) {
-//                    printf("%d\t", first_operand);
-//                } else {
-//                    printf("$%d\t", first_operand);
-//                }
-//                if (second_immediate) {
-//                    printf("%d\t", second_operand);
-//                } else {
-//                    printf("$%d\t", second_operand);
-//                }
-//                printf("\n");
-
-
 
                 instruction_index++;
 
+                if (opcode == 18) {
+                    // Ignore LBLs because they were already read in the first loop
+                    continue;
+                }
                 int result = execute_line(opcode, out_reg, first_operand, second_operand, first_immediate,
                                           second_immediate);
                 if (result == -1) {

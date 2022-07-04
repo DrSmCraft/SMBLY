@@ -6,6 +6,7 @@
 #include <string.h>
 
 #define MAX_SYNTAX_TREE_CHILDREN 3
+#define NUM_COMMANDS 26
 
 char *strupr(char *input) {
     int length = strlen(input);
@@ -72,14 +73,23 @@ struct SyntaxTreeNode {
 
 } SyntaxTreeNode;
 
-struct SyntaxTreeNode proper_syntax_tree[26] = {
+struct SyntaxTreeNode proper_syntax_tree[NUM_COMMANDS] = {
         { /* SR */
-                .type = COMMAND, .children =  {&(struct SyntaxTreeNode) {.type=REGISTER, .children={
-                &(struct SyntaxTreeNode) {.type=DECIMAL, .children={
-                        &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
+                .type = COMMAND, .children =  {
                 &(struct SyntaxTreeNode) {.type=REGISTER, .children={
-                        &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}}
-        }}, &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}, NULL}},
+
+                        &(struct SyntaxTreeNode) {.type=DECIMAL, .children={
+
+                                &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
+
+                        &(struct SyntaxTreeNode) {.type=REGISTER, .children={
+
+                                &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}}
+
+                }},
+                &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL},
+                NULL}
+        },
         { /* ADD */
                 .type = COMMAND, .children =  {
                 &(struct SyntaxTreeNode) {.type=REGISTER, .children={
@@ -451,6 +461,66 @@ int verbose_mode = 0;
 
 char *output_path = "out.s";
 char *input_path = NULL;
+
+
+char *get_symbol_for_opcode(int opcode) {
+    if (opcode == 0) {
+        return "SR";
+    } else if (opcode == 1) {
+        return "ADD";
+    } else if (opcode == 2) {
+        return "SUB";
+    } else if (opcode == 3) {
+        return "MUL";
+    } else if (opcode == 4) {
+        return "DIV";
+    } else if (opcode == 5) {
+        return "MOD";
+    } else if (opcode == 6) {
+        return "EQ";
+    } else if (opcode == 7) {
+        return "NEQ";
+    } else if (opcode == 8) {
+        return "GT";
+    } else if (opcode == 9) {
+        return "GTE";
+    } else if (opcode == 10) {
+        return "LT";
+    } else if (opcode == 11) {
+        return "LTE";
+    } else if (opcode == 12) {
+        return "AND";
+    } else if (opcode == 13) {
+        return "OR";
+    } else if (opcode == 14) {
+        return "NOT";
+    } else if (opcode == 15) {
+        return "XOR";
+    } else if (opcode == 16) {
+        return "SLL";
+    } else if (opcode == 17) {
+        return "SRL";
+    } else if (opcode == 18) {
+        return "LBL";
+    } else if (opcode == 19) {
+        return "GOTO";
+    } else if (opcode == 20) {
+        return "GEQ";
+    } else if (opcode == 21) {
+        return "GNQ";
+    } else if (opcode == 22) {
+        return "PRINT";
+    } else if (opcode == 23) {
+        return "PRINTLN";
+    } else if (opcode == 24) {
+        return "HALT";
+    } else if (opcode == 25) {
+        return "INPUT";
+    }
+
+    return NULL;
+}
+
 
 char *get_token_type_from_int(int type) {
     if (type == COMMAND) {
@@ -1109,6 +1179,74 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
 
 }
 
+void print_single_rule(struct SyntaxTreeNode node, int num_indents) {
+
+    for (int i = 0; i < num_indents; ++i) {
+        printf("\t");
+    }
+    printf("{\n");
+    for (int i = 0; i < num_indents + 1; ++i) {
+        printf("\t");
+    }
+    printf("\"type\": \"%s\"", get_token_type_from_int(node.type));
+    if (node.type != END_STATEMENT) {
+        printf(",\n");
+        for (int i = 0; i < num_indents + 1; ++i) {
+            printf("\t");
+        }
+    } else {
+        printf("\n");
+    }
+
+
+    if (node.type != END_STATEMENT) {
+        printf("\"syntax\": [\n", get_token_type_from_int(node.type));
+        for (int child_index = 0; child_index < MAX_SYNTAX_TREE_CHILDREN; ++child_index) {
+            if (node.children[child_index] == NULL) {
+                continue;
+            }
+            print_single_rule(*node.children[child_index], num_indents + 2);
+            for (int i = 0; i < num_indents + 1; ++i) {
+                printf("\t");
+            }
+            printf(",\n");
+        }
+        for (int i = 0; i < num_indents + 1; ++i) {
+            printf("\t");
+        }
+        printf("]\n");
+    }
+
+    for (int i = 0; i < num_indents; ++i) {
+        printf("\t");
+    }
+    printf("}\n");
+}
+
+void print_syntax_rules() {
+
+
+    printf("{\n");
+    for (int i = 0; i < NUM_COMMANDS; ++i) {
+        struct SyntaxTreeNode node = proper_syntax_tree[i];
+        char *name = get_symbol_for_opcode(i);
+        printf("\t\"%s\": {\n", name);
+        printf("\t\t\"opcode\" : %d,\n", i);
+        printf("\t\t\"syntax\" : [\n");
+        print_single_rule(node, 2);
+        printf("\t\t\t\t]\n");
+
+        if (i < NUM_COMMANDS - 1) {
+            printf("\t\t},\n");
+        } else {
+            printf("\t\t}\n");
+
+        }
+    }
+    printf("}\n");
+
+}
+
 int main(int argc, char *argv[]) {
     int output_path_next = 0;
 
@@ -1143,6 +1281,9 @@ int main(int argc, char *argv[]) {
             silent_mode = 1;
         } else if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0) {
             verbose_mode = 1;
+        } else if (strcmp(arg, "--syntax-rules") == 0) {
+            print_syntax_rules();
+            return 0;
         } else {
             input_path = arg;
         }
