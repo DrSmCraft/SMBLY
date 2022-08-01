@@ -1,0 +1,15 @@
+
+# square(int) -> int
+# This function returns the square of the the given input
+# Inputs: $i1
+# Return $r1
+FUNCTION square # Create new function named "square"
+    MUL $r1, $i1, $i1 # Multiply input 1 by input 1 and store in return 1
+END FUNCTION # Exit the function and return set registers
+
+
+SR $i1, 2 # Set input 1 to 2
+CALL square # Call the function named "square"
+SR $1, $r1 # Copy the return 1 into register 1
+PRINT $1 # Print register 1
+HALT

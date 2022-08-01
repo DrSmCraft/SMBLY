@@ -855,8 +855,8 @@ uint64_t get_opcode_for_symbol(char *symbol) {
 struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
     if (!silent_mode)
         printf("[LEXER] Lexing started...\n");
-    struct TokenNode *tokens;
-    struct TokenNode *head;
+    struct TokenNode *tokens = NULL;
+    struct TokenNode *head = NULL;
 
     int token_index = 0;
 
@@ -1260,14 +1260,12 @@ int main(int argc, char *argv[]) {
             output_path_next = 0;
             continue;
         } else if (strcmp(arg, "-h") == 0 || strcmp(arg, "-?") == 0 || strcmp(arg, "--help") == 0) {
-            printf("  _____  __  __  ____   _      __     __   _____                           _  _             \n"
-                   " / ____||  \\/  ||  _ \\ | |     \\ \\   / /  / ____|                         (_)| |            \n"
-                   "| (___  | \\  / || |_) || |      \\ \\_/ /  | |       ___   _ __ ___   _ __   _ | |  ___  _ __ \n"
-                   " \\___ \\ | |\\/| ||  _ < | |       \\   /   | |      / _ \\ | '_ ` _ \\ | '_ \\ | || | / _ \\| '__|\n"
-                   " ____) || |  | || |_) || |____    | |    | |____ | (_) || | | | | || |_) || || ||  __/| |   \n"
-                   "|_____/ |_|  |_||____/ |______|   |_|     \\_____| \\___/ |_| |_| |_|| .__/ |_||_| \\___||_|   \n"
-                   "                                                                   | |                      \n"
-                   "                                                                   |_|                      \n");
+            printf("  ____  __  __ ____  _  __   __   ____                      _ _           \n"
+                   " / ___||  \\/  | __ )| | \\ \\ / /  / ___|___  _ __ ___  _ __ (_) | ___ _ __ \n"
+                   " \\___ \\| |\\/| |  _ \\| |  \\ V /  | |   / _ \\| '_ ` _ \\| '_ \\| | |/ _ \\ '__|\n"
+                   "  ___) | |  | | |_) | |___| |   | |__| (_) | | | | | | |_) | | |  __/ |   \n"
+                   " |____/|_|  |_|____/|_____|_|    \\____\\___/|_| |_| |_| .__/|_|_|\\___|_|   \n"
+                   "                                                     |_|                  \n");
             printf("Usage: SMBLY-C inputFile [options]\n\n");
             printf("Options:\n");
             printf("-h, --help\t\t\t\tShow this help message\n");
@@ -1317,10 +1315,14 @@ int main(int argc, char *argv[]) {
                 max_line_size = line_size;
             }
             line_size = 0;
+        } else if (ch == ';') {
+            num_lines++;
         } else {
             line_size++;
         }
     }
+
+
     num_lines++;
 
     if (max_line_size < 0) {
@@ -1332,10 +1334,11 @@ int main(int argc, char *argv[]) {
         printf("[READER] Max line size: %d\n", max_line_size);
         printf("[READER] Line size: %d\n", line_size);
     }
-    // Go back to beginning of the file
-    fseek(fp, 0, SEEK_SET);
+// Go back to beginning of the file
+    fseek(fp,
+          0, SEEK_SET);
 
-    // Create buffers for lines
+// Create buffers for lines
     char *line = (char *) malloc(max_line_size);
     if (!line) {
         if (!silent_mode)
@@ -1344,9 +1347,10 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    char **lines = (char **) malloc(num_lines * sizeof(char *));
+    char *lines[num_lines];
     if (!lines) {
         if (!silent_mode)
+
             fprintf(stderr, "[ERROR] Could not allocate memory for lines with size %d\n", num_lines * sizeof(char *));
         return 1;
     }
@@ -1364,13 +1368,28 @@ int main(int argc, char *argv[]) {
             line[length - 1] = '\0';
         }
 
-        char *copied_line = malloc(length * sizeof(char));
-        strncpy(copied_line, line, length);
-        copied_line[length] = '\0';
-
-        lines[line_index] = copied_line;
-        line_index++;
+        int start = 0;
+        for (int i = 0; i < length+1; ++i) {
+            if(i == start){
+                continue;
+            }
+            if (line[i] == ';' || line[i] == '\n' || line[i] == '\0' ) {
+                char *copied_line = malloc((i - start+1) * sizeof(char));
+                strncpy(copied_line, &(line[start]), i - start +1);
+                copied_line[i] = '\0';
+                lines[line_index] = copied_line;
+                line_index++;
+                start = i + 1;
+            }
+        }
+//        char *copied_line = malloc(length * sizeof(char));
+//        strncpy(copied_line, line, length);
+//        copied_line[length] = '\0';
+//
+//        lines[line_index] = copied_line;
+//        line_index++;
     }
+
 //    free(line);
 
 
@@ -1379,6 +1398,7 @@ int main(int argc, char *argv[]) {
     int syntax_check_result = syntax_check(tokens, num_nodes);
     if (syntax_check_result != 0) {
         if (!silent_mode)
+
             fprintf(stderr, "[STATUS] Building Failed\n");
         exit(syntax_check_result);
     }
@@ -1386,7 +1406,8 @@ int main(int argc, char *argv[]) {
     FILE *output_file;
     output_file = fopen(output_path, "wb");
 
-    compile_tokens(tokens, output_file, num_nodes);
+    compile_tokens(tokens, output_file, num_nodes
+    );
     fclose(output_file);
 
     return 0;

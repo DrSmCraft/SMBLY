@@ -1,0 +1,17 @@
+DECLARE .hello, "Hello"
+DECLARE .sep, ", "
+DECLARE .world, "World"
+
+
+SR $1, 1
+
+LBL :loop
+# Example Hello World file
+PRINT .hello
+PRINT .sep
+PRINTLN .world
+
+ADD $1, 1
+GT $1, 10
+GEQ $1, 1, :loop
+HALT
