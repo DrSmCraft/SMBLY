@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <string.h>
+#include<conio.h>
 
 #define MAX_SYNTAX_TREE_CHILDREN 3
 #define NUM_COMMANDS 26
@@ -544,7 +545,9 @@ char *lstrip(char *string) {
         return NULL;
     }
     int length = strlen(string);
-
+    if(length <= 0){
+        return "";
+    }
     int index = 0;
     while (isspace(string[index])) {
         index++;
@@ -561,7 +564,9 @@ char *rstrip(char *string) {
     }
 
     int length = strlen(string);
-
+    if(length <= 0){
+        return "";
+    }
     int index = length - 1;
     while (isspace(string[index])) {
         index--;
@@ -573,6 +578,9 @@ char *rstrip(char *string) {
 }
 
 char *strip(char *string) {
+    if(strlen(string) <= 0){
+        return "";
+    }
     return rstrip(lstrip(string));
 }
 
@@ -713,6 +721,22 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
     }
     int start_index = index;
 
+    if (line[index] == ';') {
+        token->type = END_STATEMENT;
+        token->symbol = ";";
+        token->line = line_number;
+        token->pos = start_index;
+        if (verbose_mode)
+            printf("[LEXER] Read Token %s, classifying it as a %s\n", ";",
+                   get_token_type_from_int(END_STATEMENT));
+        while (isalnum(line[index]) == 0 && line[index] != '$' && line[index] != '"') {
+            if (line[index] == '\0' || line[index] == '\n' || line[index] == '#' || line[index] == ';') {
+                break;
+            }
+            index++;
+        }
+        return index + 1;
+    }
     // While the whole line is not processed
     while (line[index] != '\0' && line[index] != '\n') {
         if (line[index] == '"') {
@@ -730,7 +754,8 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
             return -1;
         } else {
             // Find the beginning of the next token
-            while (line[index] != ' ' && line[index] != ',' && line[index] != '\0' && line[index] != '\n') {
+            while (line[index] != ' ' && line[index] != ',' && line[index] != '\0' && line[index] != '\n' &&
+                   line[index] != ';') {
                 index++;
             }
         }
@@ -742,7 +767,7 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
 
         // Find the beginning of the next token
         while (isalnum(line[index]) == 0 && line[index] != '$' && line[index] != '"') {
-            if (line[index] == '\0' || line[index] == '\n' || line[index] == '#') {
+            if (line[index] == '\0' || line[index] == '\n' || line[index] == '#' || line[index] == ';') {
                 break;
             }
             index++;
@@ -955,30 +980,31 @@ int iterative_syntax_token_tree_check(struct TokenNode *finger, struct SyntaxTre
         prev = found_node;
         found_node = get_child_syntax_node_corresponding_to_token(finger->next, found_node);
         if (found_node == NULL && finger->next->token->type != END_STATEMENT) {
-            if (!silent_mode)
-                fprintf(stderr, "[ERROR] File %s:%d:%d\n\t\t\tUnexpected token '%s' at line %d and pos %d\n",
-                        input_path, finger->next->token->line + 1, finger->next->token->pos + 1,
-                        finger->next->token->symbol,
-                        finger->next->token->line + 1, finger->next->token->pos + 1);
+            if (!silent_mode) {
+                printf("[ERROR] File %s:%d:%d\n\t\t\tUnexpected token '%s' at line %d and pos %d\n",
+                       input_path, finger->next->token->line + 1, finger->next->token->pos + 1,
+                       finger->next->token->symbol,
+                       finger->next->token->line + 1, finger->next->token->pos + 1);
+            }
             syntax_check_result = 1;
         } else if (found_node == NULL && finger->next->token->type == END_STATEMENT) {
             if (!silent_mode && prev != NULL) {
 
-                fprintf(stderr, "[ERROR] File %s:%d:%d\n\t\t\tExpected a ", input_path, finger->next->token->line + 1,
-                        finger->next->token->pos + 1);
+                printf("[ERROR] File %s:%d:%d\n\t\t\tExpected a ", input_path, finger->next->token->line + 1,
+                       finger->next->token->pos + 1);
                 for (int i = 0; i < MAX_SYNTAX_TREE_CHILDREN; ++i) {
                     if (prev->children[i] == NULL) {
                         continue;
                     }
-                    fprintf(stderr, "%s ", get_token_type_from_int(prev->children[i]->type));
+                    printf("%s ", get_token_type_from_int(prev->children[i]->type));
                     if (i < MAX_SYNTAX_TREE_CHILDREN - 1 && prev->children[i + 1] != NULL) {
-                        fprintf(stderr, "or ");
+                        printf("or ");
                     }
                 }
 
-                fprintf(stderr, "at line %d and pos %d\n",
-                        finger->token->line + 1,
-                        finger->token->pos + strlen(finger->token->symbol));
+                printf("at line %d and pos %d\n",
+                       finger->token->line + 1,
+                       finger->token->pos + strlen(finger->token->symbol));
             }
             syntax_check_result = 1;
         }
@@ -1003,8 +1029,8 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
     while (token_count < num_nodes - 1) {
         if (finger->token->type == -1) {
             if (!silent_mode)
-                fprintf(stderr, "[ERROR] Unknown command '%s' at line %d.\n", finger->token->symbol,
-                        finger->token->line + 1);
+                printf("[ERROR] Unknown command '%s' at line %d.\n", finger->token->symbol,
+                       finger->token->line + 1);
             syntax_check_result = 1;
         } else if (finger->token->type == COMMAND) {
             struct SyntaxTreeNode tree = proper_syntax_tree[(int) get_opcode_for_symbol(finger->token->symbol)];
@@ -1315,8 +1341,6 @@ int main(int argc, char *argv[]) {
                 max_line_size = line_size;
             }
             line_size = 0;
-        } else if (ch == ';') {
-            num_lines++;
         } else {
             line_size++;
         }
@@ -1343,7 +1367,7 @@ int main(int argc, char *argv[]) {
     if (!line) {
         if (!silent_mode)
 
-            fprintf(stderr, "[ERROR] Could not allocate memory for line with size %d\n", max_line_size);
+            printf("[ERROR] Could not allocate memory for line with size %d\n", max_line_size);
         exit(1);
     }
 
@@ -1351,7 +1375,7 @@ int main(int argc, char *argv[]) {
     if (!lines) {
         if (!silent_mode)
 
-            fprintf(stderr, "[ERROR] Could not allocate memory for lines with size %d\n", num_lines * sizeof(char *));
+            printf("[ERROR] Could not allocate memory for lines with size %d\n", num_lines * sizeof(char *));
         return 1;
     }
     for (int i = 0; i < num_lines; ++i) {
@@ -1368,26 +1392,28 @@ int main(int argc, char *argv[]) {
             line[length - 1] = '\0';
         }
 
-        int start = 0;
-        for (int i = 0; i < length+1; ++i) {
-            if(i == start){
-                continue;
-            }
-            if (line[i] == ';' || line[i] == '\n' || line[i] == '\0' ) {
-                char *copied_line = malloc((i - start+1) * sizeof(char));
-                strncpy(copied_line, &(line[start]), i - start +1);
-                copied_line[i] = '\0';
-                lines[line_index] = copied_line;
-                line_index++;
-                start = i + 1;
-            }
-        }
-//        char *copied_line = malloc(length * sizeof(char));
-//        strncpy(copied_line, line, length);
-//        copied_line[length] = '\0';
-//
-//        lines[line_index] = copied_line;
-//        line_index++;
+//        int start = 0;
+//        for (int i = 0; i < length + 1; ++i) {
+//            if (i == start) {
+//                continue;
+//            }
+//            if (line[i] == ';' || line[i] == '\n' || line[i] == '\0') {
+//                char *copied_line = malloc((i - start + 1) * sizeof(char));
+//                strncpy(copied_line, &(line[start]), i - start + 1);
+//                copied_line[i - start] = '\0';
+////                printf("%d\n", i);
+////                printf("%s\n", copied_line);
+//                lines[line_index] = copied_line;
+//                line_index++;
+//                start = i+1;
+//            }
+//        }
+        char *copied_line = malloc(length * sizeof(char));
+        strncpy(copied_line, line, length);
+        copied_line[length] = '\0';
+
+        lines[line_index] = copied_line;
+        line_index++;
     }
 
 //    free(line);
