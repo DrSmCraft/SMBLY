@@ -1,10 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
 #include <ctype.h>
 #include <stdint.h>
 #include <string.h>
-#include<conio.h>
 
 #define MAX_SYNTAX_TREE_CHILDREN 3
 #define NUM_COMMANDS 26
@@ -545,7 +543,7 @@ char *lstrip(char *string) {
         return NULL;
     }
     int length = strlen(string);
-    if(length <= 0){
+    if (length <= 0) {
         return "";
     }
     int index = 0;
@@ -564,7 +562,7 @@ char *rstrip(char *string) {
     }
 
     int length = strlen(string);
-    if(length <= 0){
+    if (length <= 0) {
         return "";
     }
     int index = length - 1;
@@ -578,7 +576,7 @@ char *rstrip(char *string) {
 }
 
 char *strip(char *string) {
-    if(strlen(string) <= 0){
+    if (strlen(string) <= 0) {
         return "";
     }
     return rstrip(lstrip(string));
@@ -1071,23 +1069,26 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
         directives[i] = "";
     }
 
-    while (token_count < num_nodes - 1) {
+    while (token_count < num_nodes) {
         struct Token *token = finger->token;
 
 
         if (token->type == COMMAND) {
+            printf("Compiling %s\n", token->symbol);
             uint64_t opcode = get_opcode_for_symbol(token->symbol);
             code |= ((opcode << (12 * 4)) & 0xFFFF000000000000L);
 
         } else if (token->type == END_STATEMENT) {
-            codes[code_count] = code;
+            printf("ENDING\n");
 
+            codes[code_count] = code;
             argument_offset = 32L;
             code = 0;
             code_count++;
 
 
         } else if (token->type == REGISTER) {
+            printf("Compiling %s\n", token->symbol);
             int len = strlen(token->symbol);
             char *reg = malloc(len - 1);
             strncpy(reg, &(token->symbol[1]), len - 1);
@@ -1103,6 +1104,7 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
             }
             argument_offset -= 16L;
         } else if (token->type == DECIMAL) {
+            printf("Compiling %s\n", token->symbol);
 
             int immediate = atoi(token->symbol);
 
@@ -1186,7 +1188,7 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
     }
     if (verbose_mode) {
         printf("[COMPILER] Finished directive section\n");
-        printf("[COMPILER] Starting codes section...\n");
+        printf("[COMPILER] Starting codes section with %d codes...\n", code_count);
     }
     section_separator = 0x0000FFFF0000FFFFL;
     fwrite(&section_separator, 1, sizeof(section_separator), output);
@@ -1349,8 +1351,8 @@ int main(int argc, char *argv[]) {
 
     num_lines++;
 
-    if (max_line_size < 0) {
-        max_line_size = line_size + 1;
+    if (max_line_size < 0 || max_line_size < line_size) {
+        max_line_size = line_size;
     }
     max_line_size++;
     if (!silent_mode && verbose_mode) {
@@ -1391,23 +1393,6 @@ int main(int argc, char *argv[]) {
         if (line[length - 1] == '\n') {
             line[length - 1] = '\0';
         }
-
-//        int start = 0;
-//        for (int i = 0; i < length + 1; ++i) {
-//            if (i == start) {
-//                continue;
-//            }
-//            if (line[i] == ';' || line[i] == '\n' || line[i] == '\0') {
-//                char *copied_line = malloc((i - start + 1) * sizeof(char));
-//                strncpy(copied_line, &(line[start]), i - start + 1);
-//                copied_line[i - start] = '\0';
-////                printf("%d\n", i);
-////                printf("%s\n", copied_line);
-//                lines[line_index] = copied_line;
-//                line_index++;
-//                start = i+1;
-//            }
-//        }
         char *copied_line = malloc(length * sizeof(char));
         strncpy(copied_line, line, length);
         copied_line[length] = '\0';
@@ -1432,8 +1417,7 @@ int main(int argc, char *argv[]) {
     FILE *output_file;
     output_file = fopen(output_path, "wb");
 
-    compile_tokens(tokens, output_file, num_nodes
-    );
+    compile_tokens(tokens, output_file, num_nodes);
     fclose(output_file);
 
     return 0;

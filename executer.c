@@ -148,13 +148,18 @@ int execute_DIV(int *registers, int out_reg, int first_operand, int second_opera
     } else {
         result = registers[first_operand];
     }
-
+    int second_value = 0;
     if (second_immediate > 0) {
-        result /= second_operand;
+        second_value = second_operand;
     } else {
-        result /= registers[second_operand];
+        second_value = registers[second_operand];
     }
 
+    if (second_value == 0) {
+        printf("[ERROR] Division by Zero Error\n");
+        return -1;
+    }
+    result /= second_value;
     registers[out_reg] = result;
     return 0;
 }
@@ -168,12 +173,18 @@ int execute_MOD(int *registers, int out_reg, int first_operand, int second_opera
         result = registers[first_operand];
     }
 
+    int second_value = 0;
     if (second_immediate > 0) {
-        result %= second_operand;
+        second_value = second_operand;
     } else {
-        result %= registers[second_operand];
+        second_value = registers[second_operand];
     }
 
+    if (second_value == 0) {
+        printf("[ERROR] Modulo by Zero Error\n");
+        return -1;
+    }
+    result /= second_value;
     registers[out_reg] = result;
     return 0;
 }
@@ -763,7 +774,7 @@ int main(int argc, char *argv[]) {
                                           second_immediate);
                 if (result == -1) {
                     //error
-                    printf("[ERROR] Encountered Runtime Error");
+//                    printf("[ERROR] Encountered Runtime Error");
                     exit(1);
                 }
                 if (result == 1) {
