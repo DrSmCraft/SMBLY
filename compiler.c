@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#define VERSION 1.0
 #define MAX_SYNTAX_TREE_CHILDREN 3
 #define NUM_COMMANDS 26
 
@@ -1294,6 +1295,7 @@ int main(int argc, char *argv[]) {
                    "  ___) | |  | | |_) | |___| |   | |__| (_) | | | | | | |_) | | |  __/ |   \n"
                    " |____/|_|  |_|____/|_____|_|    \\____\\___/|_| |_| |_| .__/|_|_|\\___|_|   \n"
                    "                                                     |_|                  \n");
+            printf("                              Version %.1f                          \n\n", VERSION);
             printf("Usage: SMBLY-C inputFile [options]\n\n");
             printf("Options:\n");
             printf("-h, --help\t\t\t\tShow this help message\n");

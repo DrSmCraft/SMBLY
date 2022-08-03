@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <stdint.h>
 
+#define VERSION 1.0
+
 uint64_t num_directives = 0;
 
 int registers[100];
@@ -667,6 +669,8 @@ int main(int argc, char *argv[]) {
                    "  ___) | |  | | |_) | |___| |   | |___ >  <  __/ (__| |_| | ||  __/ |   \n"
                    " |____/|_|  |_|____/|_____|_|   |_____/_/\\_\\___|\\___|\\__,_|\\__\\___|_|   \n"
                    "                                                                        \n");
+            printf("                              Version %.1f                          \n\n", VERSION);
+
             printf("Usage: SMBLY inputFile [options]\n\n");
             printf("Options:\n");
             printf("-h, --help\t\t\t\tShow this help message\n");
