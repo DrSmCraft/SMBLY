@@ -1,4 +1,6 @@
-SR $1, 1
-MOD $2, $1, 0
-DIV $2, $1, 0
-PRINTLN $2
+LBL :loop
+INPUT $1
+PRINTLN $1
+GTE $2, $1, 10
+GEQ $2, 0, :loop
+HALT

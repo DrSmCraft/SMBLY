@@ -6,7 +6,7 @@
 
 #define VERSION 1.0
 #define MAX_SYNTAX_TREE_CHILDREN 3
-#define NUM_COMMANDS 26
+#define NUM_COMMANDS 27
 
 char *strupr(char *input) {
     int length = strlen(input);
@@ -42,12 +42,20 @@ enum Command {
     PRINT = 22,
     PRINTLN = 23,
     HALT = 24,
-    INPUT = 25
+    INPUT = 25,
+    DECLARE = 26
 
 };
 
 enum TokenType {
-    COMMAND = 1, REGISTER = 2, DECIMAL = 3, HEXIDECIMAL = 4, DIRECTIVE = 5, END_STATEMENT = 9
+    COMMAND = 1,
+    REGISTER = 2,
+    DECIMAL = 3,
+    HEXIDECIMAL = 4,
+    DIRECTIVE = 5,
+    DIRECTIVE_LITERAL = 6,
+    LBL_LITERAL = 7,
+    END_STATEMENT = 9
 };
 
 
@@ -390,7 +398,7 @@ struct SyntaxTreeNode proper_syntax_tree[NUM_COMMANDS] = {
                 }}, &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}, NULL}},
         { /* LBL */
                 .type = COMMAND, .children =  {
-                &(struct SyntaxTreeNode) {.type=DIRECTIVE, .children={
+                &(struct SyntaxTreeNode) {.type=LBL_LITERAL, .children={
                         &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                 &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}, NULL}},
         { /* GOTO */
@@ -402,12 +410,12 @@ struct SyntaxTreeNode proper_syntax_tree[NUM_COMMANDS] = {
                 .type = COMMAND, .children =  {
                 &(struct SyntaxTreeNode) {.type=REGISTER, .children={
                         &(struct SyntaxTreeNode) {.type=DECIMAL, .children={
-                                &(struct SyntaxTreeNode) {.type= DIRECTIVE, .children={
+                                &(struct SyntaxTreeNode) {.type= LBL_LITERAL, .children={
                                         &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                         }
                         },
                         &(struct SyntaxTreeNode) {.type=REGISTER, .children={
-                                &(struct SyntaxTreeNode) {.type= DIRECTIVE, .children={
+                                &(struct SyntaxTreeNode) {.type= LBL_LITERAL, .children={
                                         &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                         }
                         },
@@ -416,12 +424,12 @@ struct SyntaxTreeNode proper_syntax_tree[NUM_COMMANDS] = {
                 .type = COMMAND, .children =  {
                 &(struct SyntaxTreeNode) {.type=REGISTER, .children={
                         &(struct SyntaxTreeNode) {.type=DECIMAL, .children={
-                                &(struct SyntaxTreeNode) {.type= DIRECTIVE, .children={
+                                &(struct SyntaxTreeNode) {.type= LBL_LITERAL, .children={
                                         &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                         }
                         },
                         &(struct SyntaxTreeNode) {.type=REGISTER, .children={
-                                &(struct SyntaxTreeNode) {.type= DIRECTIVE, .children={
+                                &(struct SyntaxTreeNode) {.type= LBL_LITERAL, .children={
                                         &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                         }
                         },
@@ -453,6 +461,13 @@ struct SyntaxTreeNode proper_syntax_tree[NUM_COMMANDS] = {
                         &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
         }
         },
+        { /* DECLARE */
+                .type = COMMAND, .children =  {
+                &(struct SyntaxTreeNode) {.type=DIRECTIVE, .children={
+                        &(struct SyntaxTreeNode) {.type=DIRECTIVE_LITERAL, .children={
+                                &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}}}},
+        }
+        }
 };
 
 int silent_mode = 0;
@@ -464,58 +479,60 @@ char *input_path = NULL;
 
 
 char *get_symbol_for_opcode(int opcode) {
-    if (opcode == 0) {
+    if (opcode == SR) {
         return "SR";
-    } else if (opcode == 1) {
+    } else if (opcode == ADD) {
         return "ADD";
-    } else if (opcode == 2) {
+    } else if (opcode == SUB) {
         return "SUB";
-    } else if (opcode == 3) {
+    } else if (opcode == MUL) {
         return "MUL";
-    } else if (opcode == 4) {
+    } else if (opcode == DIV) {
         return "DIV";
-    } else if (opcode == 5) {
+    } else if (opcode == MOD) {
         return "MOD";
-    } else if (opcode == 6) {
+    } else if (opcode == EQ) {
         return "EQ";
-    } else if (opcode == 7) {
+    } else if (opcode == NEQ) {
         return "NEQ";
-    } else if (opcode == 8) {
+    } else if (opcode == GT) {
         return "GT";
-    } else if (opcode == 9) {
+    } else if (opcode == GTE) {
         return "GTE";
-    } else if (opcode == 10) {
+    } else if (opcode == LT) {
         return "LT";
-    } else if (opcode == 11) {
+    } else if (opcode == LTE) {
         return "LTE";
-    } else if (opcode == 12) {
+    } else if (opcode == AND) {
         return "AND";
-    } else if (opcode == 13) {
+    } else if (opcode == OR) {
         return "OR";
-    } else if (opcode == 14) {
+    } else if (opcode == NOT) {
         return "NOT";
-    } else if (opcode == 15) {
+    } else if (opcode == XOR) {
         return "XOR";
-    } else if (opcode == 16) {
+    } else if (opcode == SLL) {
         return "SLL";
-    } else if (opcode == 17) {
+    } else if (opcode == SRL) {
         return "SRL";
-    } else if (opcode == 18) {
+    } else if (opcode == LBL) {
         return "LBL";
-    } else if (opcode == 19) {
+    } else if (opcode == GOTO) {
         return "GOTO";
-    } else if (opcode == 20) {
+    } else if (opcode == GEQ) {
         return "GEQ";
-    } else if (opcode == 21) {
+    } else if (opcode == GNQ) {
         return "GNQ";
-    } else if (opcode == 22) {
+    } else if (opcode == PRINT) {
         return "PRINT";
-    } else if (opcode == 23) {
+    } else if (opcode == PRINTLN) {
         return "PRINTLN";
-    } else if (opcode == 24) {
+    } else if (opcode == HALT) {
         return "HALT";
-    } else if (opcode == 25) {
+    } else if (opcode == INPUT) {
         return "INPUT";
+    } else if (opcode == DECLARE) {
+        return "DECLARE";
     }
 
     return NULL;
@@ -533,6 +550,10 @@ char *get_token_type_from_int(int type) {
         return "HEXIDECIMAL";
     } else if (type == DIRECTIVE) {
         return "DIRECTIVE";
+    } else if (type == DIRECTIVE_LITERAL) {
+        return "DIRECTIVE_LITERAL";
+    } else if (type == LBL_LITERAL) {
+        return "LBL_LITERAL";
     } else if (type == END_STATEMENT) {
         return "END_STATEMENT";
     }
@@ -585,12 +606,38 @@ char *strip(char *string) {
 
 
 int get_token_type(char *symbol) {
-
     if (symbol[0] == '"') {
         if (symbol[strlen(symbol) - 1] != '"') {
             return -1;
         }
+        return DIRECTIVE_LITERAL;
+    }
+    if (symbol[0] == '.') {
+        if (isalpha(symbol[1]) <= 0) {
+            return -1;
+        }
+        int index = 2;
+        while (index < strlen(symbol)) {
+            if (isalnum(symbol[index]) <= 0) {
+                return -1;
+            }
+            index++;
+        }
         return DIRECTIVE;
+    }
+
+    if (symbol[0] == ':') {
+        if (isalpha(symbol[1]) <= 0) {
+            return -1;
+        }
+        int index = 2;
+        while (index < strlen(symbol)) {
+            if (isalnum(symbol[index]) <= 0) {
+                return -1;
+            }
+            index++;
+        }
+        return LBL_LITERAL;
     }
 
     char *upper_symbol = strupr(symbol);
@@ -672,6 +719,9 @@ int get_token_type(char *symbol) {
         return COMMAND;
     }
     if (strcmp(upper_symbol, "INPUT") == 0) {
+        return COMMAND;
+    }
+    if (strcmp(upper_symbol, "DECLARE") == 0) {
         return COMMAND;
     }
     if (upper_symbol[0] == '$') {
@@ -765,7 +815,8 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
         value[index - start_index] = '\0';
 
         // Find the beginning of the next token
-        while (isalnum(line[index]) == 0 && line[index] != '$' && line[index] != '"') {
+        while (isalnum(line[index]) == 0 && line[index] != '$' && line[index] != '"' && line[index] != '.' &&
+               line[index] != ':') {
             if (line[index] == '\0' || line[index] == '\n' || line[index] == '#' || line[index] == ';') {
                 break;
             }
@@ -870,6 +921,9 @@ uint64_t get_opcode_for_symbol(char *symbol) {
     if (strcmp(upper_symbol, "INPUT") == 0) {
         return INPUT;
     }
+    if (strcmp(upper_symbol, "DECLARE") == 0) {
+        return DECLARE;
+    }
 
     return -1L;
 
@@ -966,7 +1020,6 @@ get_child_syntax_node_corresponding_to_token(struct TokenNode *token_node, struc
         } else if (tree->children[i]->type == token_node->token->type) {
             return tree->children[i];
         }
-
     }
     return NULL;
 }
@@ -1032,7 +1085,8 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
                        finger->token->line + 1);
             syntax_check_result = 1;
         } else if (finger->token->type == COMMAND) {
-            struct SyntaxTreeNode tree = proper_syntax_tree[(int) get_opcode_for_symbol(finger->token->symbol)];
+            int opcode = (int) get_opcode_for_symbol(finger->token->symbol);
+            struct SyntaxTreeNode tree = proper_syntax_tree[opcode];
             if (verbose_mode)
                 printf("[LEXER] Running Syntax Check for command %s at line %d\n", finger->token->symbol,
                        finger->token->line + 1);
@@ -1063,11 +1117,11 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
 
     uint64_t codes[num_nodes];
     int code_count = 0;
-    int directive_count = 0;
-    char *directives[num_nodes];
+    int label_count = 0;
+    char *labels[num_nodes];
 
     for (int i = 0; i < num_nodes; ++i) {
-        directives[i] = "";
+        labels[i] = "";
     }
 
     while (token_count < num_nodes) {
@@ -1075,13 +1129,10 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
 
 
         if (token->type == COMMAND) {
-            printf("Compiling %s\n", token->symbol);
             uint64_t opcode = get_opcode_for_symbol(token->symbol);
             code |= ((opcode << (12 * 4)) & 0xFFFF000000000000L);
 
         } else if (token->type == END_STATEMENT) {
-            printf("ENDING\n");
-
             codes[code_count] = code;
             argument_offset = 32L;
             code = 0;
@@ -1089,7 +1140,6 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
 
 
         } else if (token->type == REGISTER) {
-            printf("Compiling %s\n", token->symbol);
             int len = strlen(token->symbol);
             char *reg = malloc(len - 1);
             strncpy(reg, &(token->symbol[1]), len - 1);
@@ -1133,39 +1183,44 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
             }
             argument_offset -= 16L;
         } else if (token->type == DIRECTIVE) {
-            char *directive_str = malloc((strlen(token->symbol) - 2));
-            strncpy(directive_str, &(token->symbol[1]), strlen(token->symbol) - 2);
-            int directive_index = -1;
-            directive_str[strlen(token->symbol) - 2] = '\0';
 
-            for (int i = 0; i < directive_count; ++i) {
-                if (strcmp(directives[i], directive_str) == 0) {
-                    directive_index = i;
+
+        } else if (token->type == LBL_LITERAL) {
+            // This needs to be refactored
+            char *label_str = malloc((strlen(token->symbol) - 2));
+
+            strncpy(label_str, &(token->symbol[1]), strlen(token->symbol) - 1);
+            printf("[COMPILER] Compiling label %s\n", label_str);
+            int label_index = -1;
+            label_str[strlen(token->symbol) - 1] = '\0';
+
+            for (int i = 0; i < label_count; ++i) {
+                if (strcmp(labels[i], label_str) == 0) {
+                    label_index = i;
                 }
             }
 
-            if (directive_index < 0) {
-                directives[directive_count] = directive_str;
-                directive_index = directive_count;
-                directive_count++;
+            if (label_index < 0) {
+                labels[label_count] = label_str;
+                label_index = label_count;
+                label_count++;
             } else {
-                directives[directive_index] = directive_str;
+                labels[label_index] = label_str;
             }
 
             if (argument_offset == 32L) {
-                code |= (((uint64_t) directive_index << (8 * 4)) & 0x0000FFFF00000000L);
+                code |= (((uint64_t) label_index << (8 * 4)) & 0x0000FFFF00000000L);
                 code |= 0x0000000080000000L;
             } else if (argument_offset == 16L) {
                 code |= 0x0000000080000000L;
-                code |= (((uint64_t) directive_index << (4 * 4)) & 0x000000007FFF0000L);
+                code |= (((uint64_t) label_index << (4 * 4)) & 0x000000007FFF0000L);
             } else {
                 code |= 0x0000000000008000L;
-                code |= (((uint64_t) directive_index << (0 * 4)) & 0x0000000000007FFFL);
+                code |= (((uint64_t) label_index << (0 * 4)) & 0x0000000000007FFFL);
             }
             argument_offset -= 16L;
 
-//            free(directive_str);
-
+//            free(label_str);
         }
         finger = finger->next;
         token_count++;
@@ -1174,13 +1229,13 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
 
     uint64_t section_separator = 0xFFFF0000FFFF0000L;
     fwrite(&section_separator, 1, sizeof(section_separator), output);
-    uint64_t num_directives = (uint64_t) directive_count;
+    uint64_t num_directives = (uint64_t) label_count;
     if (verbose_mode)
         printf("[COMPILER] Starting directive section...\n");
     fwrite(&num_directives, 1, sizeof(num_directives), output);
     char directive_separator = '\0';
-    for (int i = 0; i < directive_count; ++i) {
-        char *directive = directives[i];
+    for (int i = 0; i < label_count; ++i) {
+        char *directive = labels[i];
         if (verbose_mode)
             printf("[COMPILER] Writing directive %s to file\n", directive);
         fwrite(directive, 1, strlen(directive), output);
@@ -1395,16 +1450,18 @@ int main(int argc, char *argv[]) {
         if (line[length - 1] == '\n') {
             line[length - 1] = '\0';
         }
-        char *copied_line = malloc(length * sizeof(char));
+
+        char *copied_line = malloc((length + 1) * sizeof(char));
+
         strncpy(copied_line, line, length);
         copied_line[length] = '\0';
 
         lines[line_index] = copied_line;
         line_index++;
+
     }
 
 //    free(line);
-
 
     int num_nodes = 0;
     struct TokenNode *tokens = lexer(lines, num_lines, &num_nodes);
