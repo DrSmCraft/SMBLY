@@ -1,6 +1,5 @@
-
-
 # Essential Operations
+
 | Operation    | Opcode |
 | ---------- | ----------- |
 | SR     | 0     |
@@ -23,15 +22,18 @@
 | SRL   | 17        |
 
 # System Operations
+
 | Operation | Opcode |
-|-----------| ----------- |
+|-----------|-------|
 | LBL       | 18    |
-| GOTO      | 19     |
-| GEQ       | 20     |
-| GNQ       |   21      |
-| PRINT     | 22       |
-| PRINTLN   | 23       |
-| HALT      | 24        |
+| GOTO      | 19    |
+| GEQ       | 20    |
+| GNQ       | 21    |
+| PRINT     | 22    |
+| PRINTLN   | 23    |
+| HALT      | 24    |
+| INPUT     | 25    |
+| DECLARE   | 26    |
 
 
 

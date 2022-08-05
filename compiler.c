@@ -960,14 +960,11 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
 
         int index = 0;
         if (verbose_mode)
-            printf("[LEXER] Parsing line %d -> (%s)\n", i + 1, stripped_line);
+            printf("[LEXER] Parsing line %d\n", i + 1);
 
         while (index > -1 && index < length) {
-            printf("[LEXER] index: %d, length: %d\n", index, length);
-            printf("%d, %d\n", sizeof(struct Token), sizeof(stripped_line));
 
             struct Token *token = malloc(sizeof(struct Token));
-//            struct Token *token = calloc(sizeof(struct Token), 1);
 
             index = parse_line(line, i, token, index);
             if (tokens == NULL) {
@@ -1136,7 +1133,8 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
         labels[i] = "";
     }
 
-    while (token_count < num_nodes) {
+    while (finger != NULL) {
+
         struct Token *token = finger->token;
 
 
@@ -1445,6 +1443,7 @@ int main(int argc, char *argv[]) {
             printf("\t--output outputFile\n");
             printf("-s, --silent\t\t\tDo not show any messages from the compiler\n");
             printf("-v, --verbose\t\t\tShow all messages from the compiler\n");
+
 
             return 0;
         } else if (strcmp(arg, "-s") == 0 || strcmp(arg, "--silent") == 0) {

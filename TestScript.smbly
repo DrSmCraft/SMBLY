@@ -1,1 +1,1 @@
-DECLARE .helloW, "Hello"
+DECLARE .hello, "Hello"
