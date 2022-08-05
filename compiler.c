@@ -403,7 +403,7 @@ struct SyntaxTreeNode proper_syntax_tree[NUM_COMMANDS] = {
                 &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}, NULL}},
         { /* GOTO */
                 .type = COMMAND, .children =  {
-                &(struct SyntaxTreeNode) {.type=DIRECTIVE, .children={
+                &(struct SyntaxTreeNode) {.type=LBL_LITERAL, .children={
                         &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                 &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}, NULL}},
         { /* GEQ */
@@ -755,89 +755,6 @@ int get_token_type(char *symbol) {
     return -1;
 }
 
-/**
- * Parse line starting at the specified index and save it to a Token struct
- * @param line The line string.
- * @param line_number The line number of the line.
- * @param token Pointer to a Token struct. Saves all information in this variable.
- * @param index Index from where to start parsing from.
- * @return Returns the index to the beginning of the next token. If the whole line is precessed, returns -1.
- */
-int parse_line(char *line, int line_number, struct Token *token, int index) {
-
-    if (index >= strlen(line) || index < 0) {
-        return -1;
-    }
-    int start_index = index;
-
-    if (line[index] == ';') {
-        token->type = END_STATEMENT;
-        token->symbol = ";";
-        token->line = line_number;
-        token->pos = start_index;
-        if (verbose_mode)
-            printf("[LEXER] Read Token %s, classifying it as a %s\n", ";",
-                   get_token_type_from_int(END_STATEMENT));
-        while (isalnum(line[index]) == 0 && line[index] != '$' && line[index] != '"') {
-            if (line[index] == '\0' || line[index] == '\n' || line[index] == '#' || line[index] == ';') {
-                break;
-            }
-            index++;
-        }
-        return index + 1;
-    }
-    // While the whole line is not processed
-    while (line[index] != '\0' && line[index] != '\n') {
-        if (line[index] == '"') {
-            // If the first character is quotes, then find the ending quote
-            index++;
-            while (line[index] != '"') {
-                index++;
-            }
-            index++;
-        } else if (line[index] == '#') {
-            // If the line has hashtag (#), then ignore the rest of the line
-            if (verbose_mode)
-                printf("[LEXER] Ignoring line %d at position %d because of a inline comment\n", line_number + 1,
-                       index + 1);
-            return -1;
-        } else {
-            // Find the beginning of the next token
-            while (line[index] != ' ' && line[index] != ',' && line[index] != '\0' && line[index] != '\n' &&
-                   line[index] != ';') {
-                index++;
-            }
-        }
-
-        // Copy the string section from start index to the index
-        char *value = malloc(index - start_index);
-        strncpy(value, &line[start_index], index - start_index);
-        value[index - start_index] = '\0';
-
-        // Find the beginning of the next token
-        while (isalnum(line[index]) == 0 && line[index] != '$' && line[index] != '"' && line[index] != '.' &&
-               line[index] != ':') {
-            if (line[index] == '\0' || line[index] == '\n' || line[index] == '#' || line[index] == ';') {
-                break;
-            }
-            index++;
-        }
-
-        // Store data in token structure
-        token->type = get_token_type(value);
-        token->symbol = value;
-        token->line = line_number;
-        token->pos = start_index;
-        if (verbose_mode)
-            printf("[LEXER] Read Token %s, classifying it as a %s\n", value,
-                   get_token_type_from_int(get_token_type(value)));
-        return index;
-
-    }
-    return -1;
-
-}
-
 uint64_t get_opcode_for_symbol(char *symbol) {
 
     char *upper_symbol = strupr(symbol);
@@ -930,6 +847,89 @@ uint64_t get_opcode_for_symbol(char *symbol) {
 
 }
 
+/**
+ * Parse line starting at the specified index and save it to a Token struct
+ * @param line The line string.
+ * @param line_number The line number of the line.
+ * @param token Pointer to a Token struct. Saves all information in this variable.
+ * @param index Index from where to start parsing from.
+ * @return Returns the index to the beginning of the next token. If the whole line is precessed, returns -1.
+ */
+int parse_line(char *line, int line_number, struct Token *token, int index) {
+
+    if (index >= strlen(line) || index < 0) {
+        return -1;
+    }
+    int start_index = index;
+
+    if (line[index] == ';') {
+        token->type = END_STATEMENT;
+        token->symbol = ";";
+        token->line = line_number;
+        token->pos = start_index;
+        if (verbose_mode)
+            printf("[LEXER] Read Token %s, classifying it as a %s\n", ";",
+                   get_token_type_from_int(END_STATEMENT));
+        while (isalnum(line[index]) == 0 && line[index] != '$' && line[index] != '"') {
+            if (line[index] == '\0' || line[index] == '\n' || line[index] == '#' || line[index] == ';') {
+                break;
+            }
+            index++;
+        }
+        return index + 1;
+    }
+    // While the whole line is not processed
+    while (line[index] != '\0' && line[index] != '\n') {
+        if (line[index] == '"') {
+            // If the first character is quotes, then find the ending quote
+            index++;
+            while (line[index] != '"') {
+                index++;
+            }
+            index++;
+        } else if (line[index] == '#') {
+            // If the line has hashtag (#), then ignore the rest of the line
+            if (verbose_mode)
+                printf("[LEXER] Ignoring line %d at position %d because of a inline comment\n", line_number + 1,
+                       index + 1);
+            return -1;
+        } else {
+            // Find the beginning of the next token
+            while (line[index] != ' ' && line[index] != ',' && line[index] != '\0' && line[index] != '\n' &&
+                   line[index] != ';') {
+                index++;
+            }
+        }
+
+        // Copy the string section from start index to the index
+        char *value = malloc(index - start_index);
+        strncpy(value, &line[start_index], index - start_index);
+        value[index - start_index] = '\0';
+
+        // Find the beginning of the next token
+        while (isalnum(line[index]) == 0 && line[index] != '$' && line[index] != '"' && line[index] != '.' &&
+               line[index] != ':') {
+            if (line[index] == '\0' || line[index] == '\n' || line[index] == '#' || line[index] == ';') {
+                break;
+            }
+            index++;
+        }
+
+        // Store data in token structure
+        token->type = get_token_type(value);
+        token->symbol = value;
+        token->line = line_number;
+        token->pos = start_index;
+        if (verbose_mode)
+            printf("[LEXER] Read Token %s, classifying it as a %s\n", value,
+                   get_token_type_from_int(get_token_type(value)));
+        return index;
+
+    }
+    return -1;
+
+}
+
 struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
     if (!silent_mode)
         printf("[LEXER] Lexing started...\n");
@@ -942,6 +942,8 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
     for (int i = 0; i < num_lines; i++) {
         char *line = lines[i];
         char *stripped_line = strip(line);
+
+//        free(line);
 
         int length = strlen(stripped_line);
         if (length <= 0) {
@@ -958,10 +960,14 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
 
         int index = 0;
         if (verbose_mode)
-            printf("[LEXER] Parsing line %d\n", i + 1);
+            printf("[LEXER] Parsing line %d -> (%s)\n", i + 1, stripped_line);
 
         while (index > -1 && index < length) {
+            printf("[LEXER] index: %d, length: %d\n", index, length);
+            printf("%d, %d\n", sizeof(struct Token), sizeof(stripped_line));
+
             struct Token *token = malloc(sizeof(struct Token));
+//            struct Token *token = calloc(sizeof(struct Token), 1);
 
             index = parse_line(line, i, token, index);
             if (tokens == NULL) {
@@ -1103,6 +1109,7 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
 
         printf("[LEXER] Syntax Check Finished...\n");
 
+
     return syntax_check_result;
 }
 
@@ -1123,6 +1130,8 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
     char *directives[num_nodes];
     char *directives_literals[num_nodes];
     int is_declaring_directive = 0;
+    int skip_next_code_write = 0;
+
     for (int i = 0; i < num_nodes; ++i) {
         labels[i] = "";
     }
@@ -1137,8 +1146,10 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
             // Declared labels are not saved in sequence of commands, saved in the labels section
             if (opcode == DECLARE) {
                 is_declaring_directive = 1;
+                skip_next_code_write = 1;
             } else {
                 code |= ((opcode << (12 * 4)) & 0xFFFF000000000000L);
+                skip_next_code_write = 0;
             }
 
         } else if (token->type == REGISTER) {
@@ -1185,11 +1196,12 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
             }
             argument_offset -= 16L;
         } else if (token->type == DIRECTIVE) {
-            printf("[COMPILER] Compiling directive %s\n", token->symbol);
             if (is_declaring_directive) {
+                printf("[COMPILER] Compiling directive %s\n", token->symbol);
                 struct Token *next_token = finger->next->token;
                 int len = strlen(token->symbol);
                 char *directive_name = malloc((strlen(token->symbol) - 1) * sizeof(char));
+
                 strncpy(directive_name, &(token->symbol[1]), strlen(token->symbol) - 1);
                 directive_name[strlen(token->symbol) - 1] = '\0';
                 directives[directive_count] = directive_name;
@@ -1257,14 +1269,18 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
 
 //            free(label_str);
         } else if (token->type == END_STATEMENT) {
-            if (is_declaring_directive == 0 ) {
-                codes[code_count] = code;
-                argument_offset = 32L;
-                code = 0;
+            if (skip_next_code_write == 0) {
+                if (is_declaring_directive == 0) {
+                    codes[code_count] = code;
+                    argument_offset = 32L;
+                    code = 0;
 
+                }
+                is_declaring_directive = 0;
+                skip_next_code_write = 0;
+                code_count++;
             }
-            is_declaring_directive = 0;
-            code_count++;
+
         }
 
         finger = finger->next;
@@ -1304,7 +1320,7 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
         char *directive_value = directives_literals[i];
 
         if (verbose_mode)
-            printf("[COMPILER] Writing directive %s with value %s to file\n", directive_name, directive_value);
+            printf("[COMPILER] Writing directive %s with value \"%s\" to file\n", directive_name, directive_value);
         fwrite(directive_name, 1, strlen(directive_name), output);
         fwrite(&directive_separator, 1, sizeof(directive_separator), output);
         fwrite(directive_value, 1, strlen(directive_value), output);

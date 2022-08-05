@@ -1,10 +1,1 @@
-DECLARE .hello, "Hello"
-DECLARE .sep, ", "
-DECLARE .world, "World"
-DECLARE .exl, "!"
-
-LBL :loop
-PRINT .hello
-PRINT .sep
-PRINT .world
-PRINTLN .exl
+DECLARE .helloW, "Hello"
