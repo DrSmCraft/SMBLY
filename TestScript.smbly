@@ -1,6 +1,10 @@
+DECLARE .hello, "Hello"
+DECLARE .sep, ", "
+DECLARE .world, "World"
+DECLARE .exl, "!"
+
 LBL :loop
-INPUT $1
-PRINTLN $1
-GTE $2, $1, 10
-GEQ $2, 0, :loop
-HALT
+PRINT .hello
+PRINT .sep
+PRINT .world
+PRINTLN .exl

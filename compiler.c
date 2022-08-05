@@ -1119,7 +1119,10 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
     int code_count = 0;
     int label_count = 0;
     char *labels[num_nodes];
-
+    int directive_count = 0;
+    char *directives[num_nodes];
+    char *directives_literals[num_nodes];
+    int is_declaring_directive = 0;
     for (int i = 0; i < num_nodes; ++i) {
         labels[i] = "";
     }
@@ -1130,14 +1133,13 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
 
         if (token->type == COMMAND) {
             uint64_t opcode = get_opcode_for_symbol(token->symbol);
-            code |= ((opcode << (12 * 4)) & 0xFFFF000000000000L);
 
-        } else if (token->type == END_STATEMENT) {
-            codes[code_count] = code;
-            argument_offset = 32L;
-            code = 0;
-            code_count++;
-
+            // Declared labels are not saved in sequence of commands, saved in the labels section
+            if (opcode == DECLARE) {
+                is_declaring_directive = 1;
+            } else {
+                code |= ((opcode << (12 * 4)) & 0xFFFF000000000000L);
+            }
 
         } else if (token->type == REGISTER) {
             int len = strlen(token->symbol);
@@ -1183,7 +1185,40 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
             }
             argument_offset -= 16L;
         } else if (token->type == DIRECTIVE) {
+            printf("[COMPILER] Compiling directive %s\n", token->symbol);
+            if (is_declaring_directive) {
+                struct Token *next_token = finger->next->token;
+                int len = strlen(token->symbol);
+                char *directive_name = malloc((strlen(token->symbol) - 1) * sizeof(char));
+                strncpy(directive_name, &(token->symbol[1]), strlen(token->symbol) - 1);
+                directive_name[strlen(token->symbol) - 1] = '\0';
+                directives[directive_count] = directive_name;
 
+                char *directive_literal = malloc((strlen(next_token->symbol) - 1) * sizeof(char));
+                strncpy(directive_literal, &(next_token->symbol[1]), strlen(next_token->symbol) - 2);
+                directive_literal[strlen(next_token->symbol) - 2] = '\0';
+                directives_literals[directive_count] = directive_literal;
+                directive_count++;
+                is_declaring_directive = 0;
+            } else {
+                char *directive_name = &(token->symbol[1]);
+                for (int directive_index = 0; directive_index < directive_count; ++directive_index) {
+                    if (strcmp(directive_name, directives[directive_index]) == 0) {
+                        if (argument_offset == 32L) {
+                            code |= (((uint64_t) directive_index << (8 * 4)) & 0x0000FFFF00000000L);
+                            code |= 0x0000000080000000L;
+                        } else if (argument_offset == 16L) {
+                            code |= 0x0000000080000000L;
+                            code |= (((uint64_t) directive_index << (4 * 4)) & 0x000000007FFF0000L);
+                        } else {
+                            code |= 0x0000000000008000L;
+                            code |= (((uint64_t) directive_index << (0 * 4)) & 0x0000000000007FFFL);
+                        }
+                        argument_offset -= 16L;
+                    }
+                }
+
+            }
 
         } else if (token->type == LBL_LITERAL) {
             // This needs to be refactored
@@ -1221,39 +1256,77 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
             argument_offset -= 16L;
 
 //            free(label_str);
+        } else if (token->type == END_STATEMENT) {
+            if (is_declaring_directive == 0 ) {
+                codes[code_count] = code;
+                argument_offset = 32L;
+                code = 0;
+
+            }
+            is_declaring_directive = 0;
+            code_count++;
         }
+
         finger = finger->next;
         token_count++;
     }
 
 
-    uint64_t section_separator = 0xFFFF0000FFFF0000L;
+    uint64_t section_separator = 0xAAAAAAAAAAAAAAAAL;
     fwrite(&section_separator, 1, sizeof(section_separator), output);
-    uint64_t num_directives = (uint64_t) label_count;
+    uint64_t num_labels = (uint64_t) label_count;
     if (verbose_mode)
-        printf("[COMPILER] Starting directive section...\n");
-    fwrite(&num_directives, 1, sizeof(num_directives), output);
-    char directive_separator = '\0';
-    for (int i = 0; i < label_count; ++i) {
-        char *directive = labels[i];
+        printf("[COMPILER] Starting label section...\n");
+    fwrite(&num_labels, 1, sizeof(num_labels), output);
+    char label_separator = '\0';
+    for (int i = 0; i < num_labels; ++i) {
+        char *label = labels[i];
         if (verbose_mode)
-            printf("[COMPILER] Writing directive %s to file\n", directive);
-        fwrite(directive, 1, strlen(directive), output);
-        fwrite(&directive_separator, 1, sizeof(directive_separator), output);
+            printf("[COMPILER] Writing label %s to file\n", label);
+        fwrite(label, 1, strlen(label), output);
+        fwrite(&label_separator, 1, sizeof(label_separator), output);
 
     }
     if (verbose_mode) {
+        printf("[COMPILER] Finished label section\n");
+
+        printf("[COMPILER] Starting directive section with %d codes...\n", code_count);
+    }
+
+    section_separator = 0xBBBBBBBBBBBBBBBBL;
+    fwrite(&section_separator, 1, sizeof(section_separator), output);
+    uint64_t num_directives = (uint64_t) directive_count;
+    fwrite(&num_directives, 1, sizeof(num_directives), output);
+    char directive_separator = '\0';
+
+    for (int i = 0; i < num_directives; ++i) {
+        char *directive_name = directives[i];
+        char *directive_value = directives_literals[i];
+
+        if (verbose_mode)
+            printf("[COMPILER] Writing directive %s with value %s to file\n", directive_name, directive_value);
+        fwrite(directive_name, 1, strlen(directive_name), output);
+        fwrite(&directive_separator, 1, sizeof(directive_separator), output);
+        fwrite(directive_value, 1, strlen(directive_value), output);
+        fwrite(&directive_separator, 1, sizeof(directive_separator), output);
+
+    }
+
+
+    if (verbose_mode) {
         printf("[COMPILER] Finished directive section\n");
+
         printf("[COMPILER] Starting codes section with %d codes...\n", code_count);
     }
-    section_separator = 0x0000FFFF0000FFFFL;
+
+    section_separator = 0xCCCCCCCCCCCCCCCCL;
     fwrite(&section_separator, 1, sizeof(section_separator), output);
 
     for (int i = 0; i < code_count; ++i) {
-        code = codes[i];
+        uint64_t to_write_code = codes[i];
         if (verbose_mode)
-            printf("[COMPILER] Writing code %lu to file\n", code);
-        fwrite(&code, 1, sizeof(code), output);
+            printf("[COMPILER] Writing code %llu to file\n", to_write_code);
+        fwrite(&to_write_code, 1, sizeof(to_write_code), output);
     }
     if (verbose_mode)
         printf("[COMPILER] Finished codes section\n");
@@ -1308,8 +1381,6 @@ void print_single_rule(struct SyntaxTreeNode node, int num_indents) {
 }
 
 void print_syntax_rules() {
-
-
     printf("{\n");
     for (int i = 0; i < NUM_COMMANDS; ++i) {
         struct SyntaxTreeNode node = proper_syntax_tree[i];

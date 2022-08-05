@@ -6,11 +6,14 @@
 
 #define VERSION 1.0
 
+uint64_t num_labels = 0;
 uint64_t num_directives = 0;
 
 int registers[100];
 int instruction_index = 0;
-char **directives = NULL;
+char **labels = NULL;
+char **directives_values = NULL;
+char **directives_names = NULL;
 int *label_instruction_pos = NULL;
 char *input_path = NULL;
 int silent_mode = 0;
@@ -439,11 +442,11 @@ int execute_SRL(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-int execute_LBL(int *registers, int directive_index) {
-    char *directive = directives[directive_index];
+int execute_LBL(int *registers, int label_index) {
+    char *label = labels[label_index];
     int success = 0;
-    for (int i = 0; i < num_directives; ++i) {
-        if (strcmp(directives[i], directive) == 0) {
+    for (int i = 0; i < num_labels; ++i) {
+        if (strcmp(labels[i], label) == 0) {
             label_instruction_pos[i] = instruction_index;
             success = 1;
         }
@@ -456,11 +459,11 @@ int execute_LBL(int *registers, int directive_index) {
 }
 
 
-int execute_GOTO(int *registers, int directive_index) {
-    char *directive = directives[directive_index];
+int execute_GOTO(int *registers, int label_index) {
+    char *label = labels[label_index];
     int success = 0;
-    for (int i = 0; i < num_directives; ++i) {
-        if (strcmp(directives[i], directive) == 0) {
+    for (int i = 0; i < num_labels; ++i) {
+        if (strcmp(labels[i], label) == 0) {
             int new_instruction_index = label_instruction_pos[i];
             instruction_index = new_instruction_index;
             success = 1;
@@ -474,7 +477,7 @@ int execute_GOTO(int *registers, int directive_index) {
 }
 
 
-int execute_GEQ(int *registers, int out_reg, int second_operand, int second_immediate, int directive_index) {
+int execute_GEQ(int *registers, int out_reg, int second_operand, int second_immediate, int label_index) {
     int value1 = registers[out_reg];
     int value2 = 0;
     if (second_immediate) {
@@ -483,10 +486,10 @@ int execute_GEQ(int *registers, int out_reg, int second_operand, int second_imme
         value2 = registers[second_operand];
     }
     if (value1 == value2) {
-        char *directive = directives[directive_index];
+        char *label = labels[label_index];
         int success = 0;
-        for (int i = 0; i < num_directives; ++i) {
-            if (strcmp(directives[i], directive) == 0) {
+        for (int i = 0; i < num_labels; ++i) {
+            if (strcmp(labels[i], label) == 0) {
                 int new_instruction_index = label_instruction_pos[i];
                 instruction_index = new_instruction_index;
                 success = 1;
@@ -502,7 +505,7 @@ int execute_GEQ(int *registers, int out_reg, int second_operand, int second_imme
 }
 
 
-int execute_GNQ(int *registers, int out_reg, int second_operand, int second_immediate, int directive_index) {
+int execute_GNQ(int *registers, int out_reg, int second_operand, int second_immediate, int label_index) {
     int value1 = registers[out_reg];
     int value2 = 0;
     if (second_immediate) {
@@ -511,10 +514,10 @@ int execute_GNQ(int *registers, int out_reg, int second_operand, int second_imme
         value2 = registers[second_operand];
     }
     if (value1 != value2) {
-        char *directive = directives[directive_index];
+        char *label = labels[label_index];
         int success = 0;
-        for (int i = 0; i < num_directives; ++i) {
-            if (strcmp(directives[i], directive) == 0) {
+        for (int i = 0; i < num_labels; ++i) {
+            if (strcmp(labels[i], label) == 0) {
                 int new_instruction_index = label_instruction_pos[i];
                 instruction_index = new_instruction_index;
                 success = 1;
@@ -532,7 +535,7 @@ int execute_GNQ(int *registers, int out_reg, int second_operand, int second_imme
 
 int execute_PRINT(int *registers, int out_reg, int first_immediate) {
     if (first_immediate) {
-        printf("%s", directives[out_reg]);
+        printf("%s", directives_values[out_reg]);
 
     } else {
         printf("%d", registers[out_reg]);
@@ -543,7 +546,7 @@ int execute_PRINT(int *registers, int out_reg, int first_immediate) {
 
 int execute_PRINTLN(int *registers, int out_reg, int first_immediate) {
     if (first_immediate) {
-        printf("%s\n", directives[out_reg]);
+        printf("%s\n", directives_values[out_reg]);
 
     } else {
         printf("%d\n", registers[out_reg]);
@@ -710,31 +713,67 @@ int main(int argc, char *argv[]) {
     while (fread(&section_identifier, 1, sizeof(section_identifier), fp) == 8) {
 
 
-        if (section_identifier == 0xFFFF0000FFFF0000L) {
-            // Directives section
+        if (section_identifier == 0xAAAAAAAAAAAAAAAAL) {
+            // Labels section
+            int result = fread(&num_labels, 1, sizeof(num_labels), fp);
+            if (result != 8) {
+                return 1;
+            }
+            labels = malloc(sizeof(char *) * num_labels);
+            label_instruction_pos = malloc(sizeof(int) * num_labels);
+            int max_line_size = 30;
+            for (int label_index = 0; label_index < num_labels; ++label_index) {
+                char c;
+                char *label = (char *) malloc(max_line_size * sizeof(char));
+                int i = 0;
+                while ((c = getc(fp)) != '\0') {
+                    label[i] = c;
+                    i++;
+                }
+                label[i] = '\0';
+                labels[label_index] = label;
+            }
+
+
+        }
+        else if (section_identifier == 0xBBBBBBBBBBBBBBBBL) {
+            // Directive section
             int result = fread(&num_directives, 1, sizeof(num_directives), fp);
             if (result != 8) {
                 return 1;
             }
-            directives = malloc(sizeof(char *) * num_directives);
-            label_instruction_pos = malloc(sizeof(int) * num_directives);
+            int n = num_directives;
+            directives_names = malloc(sizeof(char *) * num_directives);
+            directives_values = malloc(sizeof(char *) * num_directives);
+
             int max_line_size = 30;
             for (int directive_index = 0; directive_index < num_directives; ++directive_index) {
                 char c;
-                char *directive = (char *) malloc(max_line_size * sizeof(char));
+                char *directive_name = (char *) malloc(max_line_size * sizeof(char));
+                char *directive_value = (char *) malloc(max_line_size * sizeof(char));
+
                 int i = 0;
                 while ((c = getc(fp)) != '\0') {
-                    directive[i] = c;
+                    directive_name[i] = c;
                     i++;
                 }
-                directive[i] = '\0';
-                directives[directive_index] = directive;
+                directive_name[i] = '\0';
+
+                i = 0;
+                while ((c = getc(fp)) != '\0') {
+                    directive_value[i] = c;
+                    i++;
+                }
+                directive_value[i] = '\0';
+
+                directives_names[directive_index] = directive_name;
+                directives_values[directive_index] = directive_value;
+
             }
-
-
-        } else if (section_identifier == 0x0000FFFF0000FFFFL) {
+        }
+        else if (section_identifier == 0xCCCCCCCCCCCCCCCCL) {
             // codes section
-            if (directives == NULL) {
+            if (labels == NULL) {
                 return 1;
             }
 
@@ -742,13 +781,13 @@ int main(int argc, char *argv[]) {
             uint64_t file_code_section_offset;
             file_code_section_offset = ftell(fp);
 
-            // First scan file for directives then execute instructions
+            // First scan file for labels then execute instructions
             while (fread(&code, 1, sizeof(code), fp) == 8) {
                 int opcode = ((code) & 0xFFFF000000000000L) >> 12 * 4;
                 int out_reg = ((code) & 0x0000FFFF00000000L) >> 8 * 4;
 
                 if (opcode == 18) {
-                    // Processing a LBL, save the directive to directives array
+                    // Processing a LBL, save the label to labels array
                     execute_LBL(registers, out_reg);
                 }
                 instruction_index++;
@@ -794,7 +833,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    free(directives);
+    free(labels);
+    free(directives_names);
+    free(directives_values);
     free(label_instruction_pos);
     return 0;
 }
