@@ -1,1 +1,2 @@
-DECLARE .hello, "Hello"
+DECLARE .hello , "Hello"
+PRINTLN .hello

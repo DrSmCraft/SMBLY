@@ -60,10 +60,10 @@ enum TokenType {
 
 
 struct Token {
-    char *symbol;
-    int line;
-    int pos;
-    enum TokenType type;
+    char *symbol; // 8 bytes
+    int line; // 4 bytes
+    int pos; // 4 bytes
+    enum TokenType type; // 8 bytes
 
 } Token;
 
@@ -560,6 +560,11 @@ char *get_token_type_from_int(int type) {
     return "UNKOWN";
 }
 
+/**
+ * TODO This method cause a heap corruption
+ * @param string
+ * @return
+ */
 char *lstrip(char *string) {
     if (string == NULL) {
         return NULL;
@@ -578,6 +583,11 @@ char *lstrip(char *string) {
     return out;
 }
 
+/**
+ * TODO This method cause a heap corruption
+ * @param string
+ * @return
+ */
 char *rstrip(char *string) {
     if (string == NULL) {
         return NULL;
@@ -597,6 +607,11 @@ char *rstrip(char *string) {
     return out;
 }
 
+/**
+ * TODO This method cause a heap corruption
+ * @param string
+ * @return
+ */
 char *strip(char *string) {
     if (strlen(string) <= 0) {
         return "";
@@ -941,11 +956,13 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
     *num_nodes = 0;
     for (int i = 0; i < num_lines; i++) {
         char *line = lines[i];
-        char *stripped_line = strip(line);
+//        char *stripped_line = strip(line);
+        char *stripped_line = line;
 
-//        free(line);
+
 
         int length = strlen(stripped_line);
+
         if (length <= 0) {
             continue;
         } else if (length == 1 && stripped_line[0] == '\0' || stripped_line[0] == '\n') {
@@ -960,10 +977,9 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
 
         int index = 0;
         if (verbose_mode)
-            printf("[LEXER] Parsing line %d\n", i + 1);
+            printf("[LEXER] Parsing line %d -> '%s'\n", i + 1, stripped_line);
 
         while (index > -1 && index < length) {
-
             struct Token *token = malloc(sizeof(struct Token));
 
             index = parse_line(line, i, token, index);
@@ -1133,8 +1149,7 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
         labels[i] = "";
     }
 
-    while (finger != NULL) {
-
+    while (token_count < num_nodes) {
         struct Token *token = finger->token;
 
 
@@ -1444,7 +1459,6 @@ int main(int argc, char *argv[]) {
             printf("-s, --silent\t\t\tDo not show any messages from the compiler\n");
             printf("-v, --verbose\t\t\tShow all messages from the compiler\n");
 
-
             return 0;
         } else if (strcmp(arg, "-s") == 0 || strcmp(arg, "--silent") == 0) {
             silent_mode = 1;
@@ -1508,10 +1522,9 @@ int main(int argc, char *argv[]) {
           0, SEEK_SET);
 
 // Create buffers for lines
-    char *line = (char *) malloc(max_line_size);
+    char *line = (char *) malloc(sizeof(char *));
     if (!line) {
         if (!silent_mode)
-
             printf("[ERROR] Could not allocate memory for line with size %d\n", max_line_size);
         exit(1);
     }
@@ -1524,7 +1537,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     for (int i = 0; i < num_lines; ++i) {
-        lines[i] = (char *) malloc(max_line_size * sizeof(char));
+        lines[i] = (char *) malloc(sizeof(char));
         lines[i][0] = '\0';
     }
     // Read line by line
@@ -1541,21 +1554,19 @@ int main(int argc, char *argv[]) {
 
         strncpy(copied_line, line, length);
         copied_line[length] = '\0';
-
+//        printf("sizeof copied_line %d\n", sizeof(copied_line));
         lines[line_index] = copied_line;
         line_index++;
-
     }
 
 //    free(line);
-
     int num_nodes = 0;
     struct TokenNode *tokens = lexer(lines, num_lines, &num_nodes);
     int syntax_check_result = syntax_check(tokens, num_nodes);
     if (syntax_check_result != 0) {
         if (!silent_mode)
 
-            fprintf(stderr, "[STATUS] Building Failed\n");
+            printf("[STATUS] Building Failed\n");
         exit(syntax_check_result);
     }
 
