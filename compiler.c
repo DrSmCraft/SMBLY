@@ -561,9 +561,10 @@ char *get_token_type_from_int(int type) {
 }
 
 /**
- * TODO This method cause a heap corruption
- * @param string
- * @return
+ * This function strips a string of leading and ending whitespace by returning the pointer to first non-whitespace character.
+ * No new memory is allocated  in the process.
+ * @param string Input string to be stripped.
+ * @return Pointer to output string.
  */
 char *lstrip(char *string) {
     if (string == NULL) {
@@ -577,16 +578,15 @@ char *lstrip(char *string) {
     while (isspace(string[index])) {
         index++;
     }
-    char *out = malloc(length - index + 1);
-    strncpy(out, &string[index], length - index);
-    out[length - index] = '\0';
-    return out;
+    return &(string[index]);
 }
 
 /**
- * TODO This method cause a heap corruption
- * @param string
- * @return
+ * This function strips a string of leading and ending whitespace by terminating the string after
+ * last non-whitespace character and returning the pointer of the string.
+ * No new memory is allocated  in the process.
+ * @param string Input string to be stripped.
+ * @return Pointer to output string.
  */
 char *rstrip(char *string) {
     if (string == NULL) {
@@ -601,16 +601,16 @@ char *rstrip(char *string) {
     while (isspace(string[index])) {
         index--;
     }
-    char *out = malloc(index + 1);
-    strncpy(out, &string[0], index + 1);
-    out[index + 1] = '\0';
-    return out;
+    string[index + 1] = '\0';
+    return string;
 }
 
 /**
- * TODO This method cause a heap corruption
- * @param string
- * @return
+ * This function strips a string of leading and ending whitespace by terminating the string after last non-whitespace
+ * character and returning the pointer to first non-whitespace character.
+ * Non new memory is allocated  in the process.
+ * @param string Input string to be stripped.
+ * @return Pointer to output string.
  */
 char *strip(char *string) {
     if (strlen(string) <= 0) {
@@ -956,10 +956,7 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
     *num_nodes = 0;
     for (int i = 0; i < num_lines; i++) {
         char *line = lines[i];
-//        char *stripped_line = strip(line);
-        char *stripped_line = line;
-
-
+        char *stripped_line = strip(line);
 
         int length = strlen(stripped_line);
 
