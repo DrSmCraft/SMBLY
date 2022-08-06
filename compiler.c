@@ -1123,6 +1123,33 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
     return syntax_check_result;
 }
 
+int directive_declaration_check(struct TokenNode *tokens) {
+    struct TokenNode *finger = tokens;
+    int is_declaring_directive = 0;
+    while (finger != NULL) {
+        struct Token *token = finger->token;
+        if(token->type == COMMAND) {
+            uint64_t opcode = get_opcode_for_symbol(token->symbol);
+
+            if (opcode == DECLARE) {
+                is_declaring_directive = 1;
+            }
+        } else if( token->type == DIRECTIVE){
+            if(is_declaring_directive == 1){
+                // Add token->symbol to array
+                is_declaring_directive = 0;
+            }
+            else{
+                // Check if token->symbol is in array
+                // If it isn't, throw "directive not declared error"
+            }
+        }
+
+
+    }
+
+}
+
 void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
     if (!silent_mode)
         printf("[COMPILER] Compiling...\n");
