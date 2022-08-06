@@ -1,2 +1,5 @@
-PRINTLN .hello
 DECLARE .hello, "Hello"
+PRINTLN .hello
+
+DECLARE .hello, "World"
+PRINTLN .hello

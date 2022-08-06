@@ -1123,30 +1123,84 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
     return syntax_check_result;
 }
 
-int directive_declaration_check(struct TokenNode *tokens) {
+int directive_declaration_check(struct TokenNode *tokens, int num_nodes) {
+    if (verbose_mode) {
+        printf("[LEXER] Directive Declaration Check started...\n");
+    }
+    int declaration_check_result = 0;
+    int array_size = 10;
     struct TokenNode *finger = tokens;
     int is_declaring_directive = 0;
-    while (finger != NULL) {
+    int num_declared = 0;
+    char **array = calloc(array_size * sizeof(char *), 1);
+
+    int token_count = 0;
+
+    while (token_count < num_nodes) {
         struct Token *token = finger->token;
-        if(token->type == COMMAND) {
+        if (token->type == COMMAND) {
             uint64_t opcode = get_opcode_for_symbol(token->symbol);
 
             if (opcode == DECLARE) {
                 is_declaring_directive = 1;
             }
-        } else if( token->type == DIRECTIVE){
-            if(is_declaring_directive == 1){
+        } else if (token->type == DIRECTIVE) {
+            if (is_declaring_directive == 1) {
                 // Add token->symbol to array
+
+                if (num_declared > array_size) {
+                    // Need to resize the array to fit new declarations
+                    array = (char **) realloc(array, array_size * 2 * sizeof(char *));
+                    array_size = array_size * 2;
+                }
+                int found = 0;
+                for (int i = 0; i < num_declared; ++i) {
+                    if (strcmp(array[i], token->symbol) == 0) {
+                        found = 1;
+                        break;
+                    }
+                }
+                if (found == 0) {
+                    array[num_declared] = token->symbol;
+                    num_declared++;
+                } else {
+                    printf("[ERROR] File %s:%d:%d\n\t\t\tRedeclaring directive '%s' at line %d and pos %d\n\t\t\tCannot redeclare a directive\n",
+                           input_path, token->line + 1, token->pos + 1,
+                           token->symbol,
+                           token->line + 1, token->pos + 1);
+                    declaration_check_result = 1;
+
+                }
                 is_declaring_directive = 0;
-            }
-            else{
+
+            } else {
                 // Check if token->symbol is in array
                 // If it isn't, throw "directive not declared error"
+                int found = 0;
+                for (int i = 0; i < num_declared; ++i) {
+                    if (strcmp(array[i], token->symbol) == 0) {
+                        found = 1;
+                        break;
+                    }
+                }
+
+                if (found == 0) {
+                    printf("[ERROR] File %s:%d:%d\n\t\t\tUndeclared directive '%s' at line %d and pos %d\n\t\t\tDeclare directive '%s' before using it\n",
+                           input_path, token->line + 1, token->pos + 1,
+                           token->symbol,
+                           token->line + 1, token->pos + 1, token->symbol);
+                    declaration_check_result = 1;
+                }
             }
         }
-
+        token_count++;
+        finger = finger->next;
 
     }
+    if (verbose_mode) {
+        printf("[LEXER] Directive Declaration Check finished...\n");
+    }
+    return declaration_check_result;
 
 }
 
@@ -1592,6 +1646,13 @@ int main(int argc, char *argv[]) {
 
             printf("[STATUS] Building Failed\n");
         exit(syntax_check_result);
+    }
+    int declaration_check_result = directive_declaration_check(tokens, num_nodes);
+    if (declaration_check_result != 0) {
+        if (!silent_mode)
+
+            printf("[STATUS] Building Failed\n");
+        exit(declaration_check_result);
     }
 
     FILE *output_file;
