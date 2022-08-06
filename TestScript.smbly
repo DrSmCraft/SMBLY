@@ -1,2 +1,2 @@
-DECLARE .hello , "Hello"
-PRINTLN .hello
+SR $1, 0xA6
+PRINTLN $1

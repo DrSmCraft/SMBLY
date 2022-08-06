@@ -750,7 +750,7 @@ int get_token_type(char *symbol) {
         }
         return REGISTER;
     }
-    if (upper_symbol[0] == '0' && upper_symbol[1] == 'X') {
+    if (upper_symbol[0] == '0' && (upper_symbol[1] == 'X' || upper_symbol[1] == 'x')) {
         return HEXIDECIMAL;
     }
 
