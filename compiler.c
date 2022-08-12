@@ -1172,7 +1172,7 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
     int token_count = 0;
 
 
-    while (token_count < num_nodes - 1) {
+    while (token_count < num_nodes - 1 && finger != NULL) {
         if (finger->token->type == -1) {
             if (!silent_mode)
                 printf("[ERROR] Unknown command '%s' at line %d.\n", finger->token->symbol,
@@ -1227,7 +1227,7 @@ int directive_declaration_check(struct TokenNode *tokens, int num_nodes) {
     }
     int token_count = 0;
 
-    while (token_count < num_nodes) {
+    while (token_count < num_nodes && finger != NULL) {
         struct Token *token = finger->token;
         if (token->type == COMMAND) {
             uint64_t opcode = get_opcode_for_symbol(token->symbol);
@@ -1332,7 +1332,7 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
         labels[i] = "";
     }
 
-    while (token_count < num_nodes) {
+    while (token_count < num_nodes && finger != NULL) {
         struct Token *token = finger->token;
 
 
