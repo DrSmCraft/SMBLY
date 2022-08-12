@@ -1,5 +1,23 @@
-DECLARE .hello, "Hello"
-PRINTLN .hello
+# Fibonacci.smbly
+# This file is example code that prints all fibonacci numbers that are less than or equal to 200.
+# It demonstrates the use of registers, directives and labels.
+#
+# Copyright (c) DrSmCraft 2022
 
-DECLARE .hello, "World"
-PRINTLN .hello
+DECLARE .greeting, "Fibonacci Series" # Create a directive named "greeting" with the value of "Fibonacci Series"
+PRINTLN .greeting # Print the greeting with a new line at the end
+SR $1, 1 # Put a 1 into register 1
+SR $2, 2 # Put a 2 into register 2
+PRINTLN $1 # Print the value at register 1 with a new line at the end
+
+LBL :loop # Create a label called "loop"
+PRINTLN $2 # Print the value at register 2 with a new line at the end
+ADD $3, $1, $2 # Add the values in registers 1 and 2, and store the results in register 3
+SR $1, $2 # Copy the value in register 2 into register 1
+SR $2, $3 # Copy the value in register 3 into register 2
+
+LTE $4, $2, 200 # If the value in register 2 is less than or equal to 200, put a 1 into register 4. 
+                #   Otherwise, put a 0 in register 4
+GEQ $4, 1, :loop # If the value in register 4 is equal to 1, then go to the "loop" label. 
+                 #  Otherwise, continue to the next line
+HALT # Terminate the script

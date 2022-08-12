@@ -1,3 +1,10 @@
+/**
+ * @name compiler.c
+ * @author DrSmCraft
+ * @copyright (c) 2022 All Rights Reserved
+ *
+ * This file compiles given *.smbly into *.s bytecode files. It also does basic syntax checking.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -5,9 +12,15 @@
 #include <string.h>
 
 #define VERSION 1.0
+#define MEMORY_ALLOCATION_ERROR_CODE 100
 #define MAX_SYNTAX_TREE_CHILDREN 3
 #define NUM_COMMANDS 27
 
+/**
+ * Convert a string to upper case. Conversion happens in place and no new memory is allocated.
+ * @param input String to convert.
+ * @return Converted string.
+ */
 char *strupr(char *input) {
     int length = strlen(input);
     for (int i = 0; i < length; ++i) {
@@ -16,6 +29,9 @@ char *strupr(char *input) {
     return input;
 }
 
+/**
+ * An enum for keeping track of the opcodes of commands
+ */
 enum Command {
     SR = 0,
     ADD = 1,
@@ -47,6 +63,9 @@ enum Command {
 
 };
 
+/**
+ * An enum for keeping track of the types of tokens.
+ */
 enum TokenType {
     COMMAND = 1,
     REGISTER = 2,
@@ -58,7 +77,9 @@ enum TokenType {
     END_STATEMENT = 9
 };
 
-
+/**
+ * Token structure to store a single token from a file.
+ */
 struct Token {
     char *symbol; // 8 bytes
     int line; // 4 bytes
@@ -67,6 +88,9 @@ struct Token {
 
 } Token;
 
+/**
+ * Token Node structure for building a doubly-linked list of the tokens.
+ */
 struct TokenNode {
     struct TokenNode *next;
     struct TokenNode *prev;
@@ -75,12 +99,16 @@ struct TokenNode {
 
 } TokenNode;
 
+/**
+ * A Node in the syntax tree.
+ */
 struct SyntaxTreeNode {
     int type;
     struct SyntaxTreeNode *children[MAX_SYNTAX_TREE_CHILDREN];
 
 } SyntaxTreeNode;
 
+// A tree structure that is used for validating syntax
 struct SyntaxTreeNode proper_syntax_tree[NUM_COMMANDS] = {
         { /* SR */
                 .type = COMMAND, .children =  {
@@ -477,7 +505,11 @@ int verbose_mode = 0;
 char *output_path = "out.s";
 char *input_path = NULL;
 
-
+/**
+ * Get the string representation of the command.
+ * @param opcode Integer that corresponds to the opcode of the command.
+ * @return String that represents the command. If the opcode is invalid, NULL is returned.
+ */
 char *get_symbol_for_opcode(int opcode) {
     if (opcode == SR) {
         return "SR";
@@ -539,6 +571,11 @@ char *get_symbol_for_opcode(int opcode) {
 }
 
 
+/**
+ * Get the string representation of the type of token.
+ * @param type Integer that corresponds to the type of token.
+ * @return String that represents the token type. If the type is invalid, "UNKOWN" is returned.
+ */
 char *get_token_type_from_int(int type) {
     if (type == COMMAND) {
         return "COMMAND";
@@ -619,7 +656,11 @@ char *strip(char *string) {
     return rstrip(lstrip(string));
 }
 
-
+/**
+ * Get the type of token given a string.
+ * @param symbol String of the token.
+ * @return Int of the type of token that corresponds to the TokenType enum. If the token is invalid, -1 is returned.
+ */
 int get_token_type(char *symbol) {
     if (symbol[0] == '"') {
         if (symbol[strlen(symbol) - 1] != '"') {
@@ -770,6 +811,11 @@ int get_token_type(char *symbol) {
     return -1;
 }
 
+/**
+ * Get the opcode for a command as a string.
+ * @param symbol A string of a command.
+ * @return Uint64_t that is the opcode. It corresponds to Command enum. If the code is invalid, -1 is returned.
+ */
 uint64_t get_opcode_for_symbol(char *symbol) {
 
     char *upper_symbol = strupr(symbol);
@@ -938,6 +984,7 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
         if (verbose_mode)
             printf("[LEXER] Read Token %s, classifying it as a %s\n", value,
                    get_token_type_from_int(get_token_type(value)));
+        // Return the index of the next token
         return index;
 
     }
@@ -945,6 +992,13 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
 
 }
 
+/**
+ * Lex an array of strings into a doubly linked list of tokens.
+ * @param lines An array of strings. Each string is a line of the code.
+ * @param num_lines Integer that is number of lines.
+ * @param num_nodes Integer pointer to output the number of tokens that were generated.
+ * @return TokenNode pointer that points to the head of the linked list.
+ */
 struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
     if (!silent_mode)
         printf("[LEXER] Lexing started...\n");
@@ -996,10 +1050,12 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
                     tokens = node;
                 }
             }
+            // Increment counts
             token_index++;
             (*num_nodes)++;
 
         }
+        // Finish the line with an end statement
         struct Token *token = malloc(sizeof(struct Token));
         token->type = END_STATEMENT;
         token->line = i;
@@ -1011,6 +1067,7 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
         node->prev = tokens;
         tokens->next = node;
         tokens = node;
+        // Increment counts
         token_index++;
         (*num_nodes)++;
     }
@@ -1020,6 +1077,14 @@ struct TokenNode *lexer(char **lines, int num_lines, int *num_nodes) {
     return head;
 }
 
+/**
+ * Get the next expected syntax tree token given the current lexed token.
+ * The direct children of the syntax tree are compared against the direct children of current token.
+ * If compatible, then the next syntax tree node is returned. Otherwise, NULL is returned.
+ * @param token_node TokenNode pointer for the current token.
+ * @param tree SyntaxTreeNode pointer for the current syntax tree node.
+ * @return The next expected SyntaxTreeNode for the current token. If it is incompatible, NULL is returned.
+ */
 struct SyntaxTreeNode *
 get_child_syntax_node_corresponding_to_token(struct TokenNode *token_node, struct SyntaxTreeNode *tree) {
 
@@ -1040,6 +1105,12 @@ get_child_syntax_node_corresponding_to_token(struct TokenNode *token_node, struc
     return NULL;
 }
 
+/**
+ * Check the syntax for a command iteratively, using a tree structure.
+ * @param finger TokenNode pointer of the current command.
+ * @param tree The syntax tree for the command that corresponds to the finger.
+ * @return 0 if everything is correct, non-zero if an error was encountered.
+ */
 int iterative_syntax_token_tree_check(struct TokenNode *finger, struct SyntaxTreeNode *tree) {
     int syntax_check_result = 0;
     struct SyntaxTreeNode *found_node = tree;
@@ -1085,6 +1156,13 @@ int iterative_syntax_token_tree_check(struct TokenNode *finger, struct SyntaxTre
     return syntax_check_result;
 }
 
+/**
+ * Check a linked list of tokens for proper syntax.
+ * This function prints an error message if improper syntax was detected.
+ * @param tokens TokenNode pointer that points to the head of the linked list of Tokens.
+ * @param num_nodes Integer that is the number of nodes in tokens.
+ * @return 0 if everything is correct, non-zero if an error was encountered.
+ */
 int syntax_check(struct TokenNode *tokens, int num_nodes) {
     int syntax_check_result = 0;
     if (!silent_mode)
@@ -1116,24 +1194,37 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
         token_count++;
     }
     if (!silent_mode)
-
-        printf("[LEXER] Syntax Check Finished...\n");
+        printf("[LEXER] Syntax Check Finished\n");
 
 
     return syntax_check_result;
 }
 
+/**
+ * Check a linked list of tokens for proper directive declaration.
+ * This function prints an error message if improper declaration was detected.
+ * For example, if a directive is used that was not declared, print 'Undeclared directive' error and return  1.
+ * @param tokens TokenNode pointer that points to the head of the linked list of Tokens.
+ * @param num_nodes Integer that is the number of nodes in tokens.
+ * @return 0 if everything is correct, non-zero if an error was encountered.
+ */
 int directive_declaration_check(struct TokenNode *tokens, int num_nodes) {
-    if (verbose_mode) {
+    if (!silent_mode) {
         printf("[LEXER] Directive Declaration Check started...\n");
     }
+    const float array_resize_factor = 2;
     int declaration_check_result = 0;
     int array_size = 10;
     struct TokenNode *finger = tokens;
     int is_declaring_directive = 0;
     int num_declared = 0;
     char **array = calloc(array_size * sizeof(char *), 1);
-
+    if (!array) {
+        if (!silent_mode)
+            printf("[SYS_ERROR] Could not allocate memory for directive array with size %d\n",
+                   array_size * sizeof(char *));
+        exit(MEMORY_ALLOCATION_ERROR_CODE);
+    }
     int token_count = 0;
 
     while (token_count < num_nodes) {
@@ -1150,7 +1241,14 @@ int directive_declaration_check(struct TokenNode *tokens, int num_nodes) {
 
                 if (num_declared > array_size) {
                     // Need to resize the array to fit new declarations
-                    array = (char **) realloc(array, array_size * 2 * sizeof(char *));
+                    int new_size = (int) ((array_size * array_resize_factor) * sizeof(char *) + 1);
+                    array = (char **) realloc(array, new_size);
+                    if (!array) {
+                        if (!silent_mode)
+                            printf("[SYS_ERROR] Could not allocate memory for directive array with size %d\n",
+                                   new_size);
+                        exit(MEMORY_ALLOCATION_ERROR_CODE);
+                    }
                     array_size = array_size * 2;
                 }
                 int found = 0;
@@ -1197,13 +1295,20 @@ int directive_declaration_check(struct TokenNode *tokens, int num_nodes) {
         finger = finger->next;
 
     }
-    if (verbose_mode) {
+    if (!silent_mode) {
         printf("[LEXER] Directive Declaration Check finished...\n");
     }
+    free(array);
     return declaration_check_result;
 
 }
 
+/**
+ * Compile a linked list of tokens into a file.
+ * @param tokens TokenNode pointer that points to the head of the linked list of Tokens.
+ * @param output FILE pointer to which to write to.
+ * @param num_nodes Integer that is the number of nodes in tokens.
+ */
 void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
     if (!silent_mode)
         printf("[COMPILER] Compiling...\n");
@@ -1246,6 +1351,12 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
         } else if (token->type == REGISTER) {
             int len = strlen(token->symbol);
             char *reg = malloc(len - 1);
+            if (!reg) {
+                if (!silent_mode) {
+                    printf("[SYS_ERROR] Could not allocate memory for a register during compilation\n");
+                }
+                exit(MEMORY_ALLOCATION_ERROR_CODE);
+            }
             strncpy(reg, &(token->symbol[1]), len - 1);
             int reg_index = atoi(reg);
 
@@ -1288,16 +1399,28 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
             argument_offset -= 16L;
         } else if (token->type == DIRECTIVE) {
             if (is_declaring_directive) {
-                printf("[COMPILER] Compiling directive %s\n", token->symbol);
+                if (verbose_mode)
+                    printf("[COMPILER] Compiling directive %s\n", token->symbol);
                 struct Token *next_token = finger->next->token;
                 int len = strlen(token->symbol);
                 char *directive_name = malloc((strlen(token->symbol) - 1) * sizeof(char));
-
+                if (!directive_name) {
+                    if (!silent_mode) {
+                        printf("[SYS_ERROR] Could not allocate memory for a directive name during compilation\n");
+                    }
+                    exit(MEMORY_ALLOCATION_ERROR_CODE);
+                }
                 strncpy(directive_name, &(token->symbol[1]), strlen(token->symbol) - 1);
                 directive_name[strlen(token->symbol) - 1] = '\0';
                 directives[directive_count] = directive_name;
 
                 char *directive_literal = malloc((strlen(next_token->symbol) - 1) * sizeof(char));
+                if (!directive_literal) {
+                    if (!silent_mode) {
+                        printf("[SYS_ERROR] Could not allocate memory for a directive literal during compilation\n");
+                    }
+                    exit(MEMORY_ALLOCATION_ERROR_CODE);
+                }
                 strncpy(directive_literal, &(next_token->symbol[1]), strlen(next_token->symbol) - 2);
                 directive_literal[strlen(next_token->symbol) - 2] = '\0';
                 directives_literals[directive_count] = directive_literal;
@@ -1326,7 +1449,12 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
         } else if (token->type == LBL_LITERAL) {
             // This needs to be refactored
             char *label_str = malloc((strlen(token->symbol) - 2));
-
+            if (!label_str) {
+                if (!silent_mode) {
+                    printf("[SYS_ERROR] Could not allocate memory for a label during compilation\n");
+                }
+                exit(MEMORY_ALLOCATION_ERROR_CODE);
+            }
             strncpy(label_str, &(token->symbol[1]), strlen(token->symbol) - 1);
             printf("[COMPILER] Compiling label %s\n", label_str);
             int label_index = -1;
@@ -1600,24 +1728,23 @@ int main(int argc, char *argv[]) {
           0, SEEK_SET);
 
 // Create buffers for lines
-    char *line = (char *) malloc(sizeof(char *));
+    char *line = (char *) malloc(max_line_size * sizeof(char *));
     if (!line) {
         if (!silent_mode)
-            printf("[ERROR] Could not allocate memory for line with size %d\n", max_line_size);
-        exit(1);
+            printf("[SYS_ERROR] Could not allocate memory for line with size %d\n", max_line_size);
+        exit(MEMORY_ALLOCATION_ERROR_CODE);
     }
 
     char *lines[num_lines];
     if (!lines) {
         if (!silent_mode)
-
-            printf("[ERROR] Could not allocate memory for lines with size %d\n", num_lines * sizeof(char *));
-        return 1;
+            printf("[SYS_ERROR] Could not allocate memory for lines with size %d\n", num_lines * sizeof(char *));
+        exit(MEMORY_ALLOCATION_ERROR_CODE);
     }
     for (int i = 0; i < num_lines; ++i) {
-        lines[i] = (char *) malloc(sizeof(char));
-        lines[i][0] = '\0';
+        lines[i] = (char *) calloc(max_line_size * sizeof(char), 1);
     }
+
     // Read line by line
     int line_index = 0;
     while (fgets(line, max_line_size + 1, fp) != NULL) {
@@ -1629,15 +1756,17 @@ int main(int argc, char *argv[]) {
         }
 
         char *copied_line = malloc((length + 1) * sizeof(char));
-
+        if (!copied_line) {
+            if (!silent_mode)
+                printf("[SYS_ERROR] Could not allocate memory for a line\n");
+            exit(MEMORY_ALLOCATION_ERROR_CODE);
+        }
         strncpy(copied_line, line, length);
         copied_line[length] = '\0';
-//        printf("sizeof copied_line %d\n", sizeof(copied_line));
         lines[line_index] = copied_line;
         line_index++;
     }
 
-//    free(line);
     int num_nodes = 0;
     struct TokenNode *tokens = lexer(lines, num_lines, &num_nodes);
     int syntax_check_result = syntax_check(tokens, num_nodes);
@@ -1661,6 +1790,11 @@ int main(int argc, char *argv[]) {
     compile_tokens(tokens, output_file, num_nodes);
     fclose(output_file);
 
+    // Free allocated memories
+    free(line);
+    for (int i = 0; i < num_lines; ++i) {
+        free(lines[i]);
+    }
     return 0;
 }
 
