@@ -57,14 +57,14 @@ LTE $1, $2, $3
 # A label
 LBL :myLabel
 
-# Go to a label
+# Jump to a label
 GOTO :myLabel # Have to keep this as a comment to avoid infinite loop
 
 # Branching
-GEQ $1, $2, :myLabel # Branch and go to myLabel if value in $1 is equal to value in $2
-GEQ $1, 2, :myLabel # Branch and go to myLabel if value in $1 is equal to value in $2
+JEQ $1, $2, :myLabel # Branch and go to myLabel if value in $1 is equal to value in $2
+JEQ $1, 2, :myLabel # Branch and go to myLabel if value in $1 is equal to value in $2
 
-GNQ $1, $2, :myLabel # Branch and go to myLabel if value in $1 is not equal to value in $2
+JNQ $1, $2, :myLabel # Branch and go to myLabel if value in $1 is not equal to value in $2
 
 # End the program
 HALT

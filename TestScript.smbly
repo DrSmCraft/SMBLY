@@ -16,8 +16,8 @@ ADD $3, $1, $2 # Add the values in registers 1 and 2, and store the results in r
 SR $1, $2 # Copy the value in register 2 into register 1
 SR $2, $3 # Copy the value in register 3 into register 2
 
-LTE $4, $2, 200 # If the value in register 2 is less than or equal to 200, put a 1 into register 4. 
+LTE $4, $2, 200 # If the value in register 2 is less than or equal to 200, put a 1 into register 4.
                 #   Otherwise, put a 0 in register 4
-GEQ $4, 1, :loop # If the value in register 4 is equal to 1, then go to the "loop" label. 
+JEQ $4, 1, :loop # If the value in register 4 is equal to 1, then go to the "loop" label.
                  #  Otherwise, continue to the next line
 HALT # Terminate the script
