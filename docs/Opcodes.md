@@ -26,9 +26,9 @@
 | Operation | Opcode |
 |-----------|-------|
 | LBL       | 18    |
-| GOTO      | 19    |
-| GEQ       | 20    |
-| GNQ       | 21    |
+| JUMP      | 19    |
+| JEQ       | 20    |
+| JNQ       | 21    |
 | PRINT     | 22    |
 | PRINTLN   | 23    |
 | HALT      | 24    |

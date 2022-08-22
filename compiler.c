@@ -52,9 +52,9 @@ enum Command {
     SLL = 16,
     SRL = 17,
     LBL = 18,
-    GOTO = 19,
-    GEQ = 20,
-    GNQ = 21,
+    JUMP = 19,
+    JEQ = 20,
+    JNQ = 21,
     PRINT = 22,
     PRINTLN = 23,
     HALT = 24,
@@ -429,12 +429,12 @@ struct SyntaxTreeNode proper_syntax_tree[NUM_COMMANDS] = {
                 &(struct SyntaxTreeNode) {.type=LBL_LITERAL, .children={
                         &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                 &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}, NULL}},
-        { /* GOTO */
+        { /* JUMP */
                 .type = COMMAND, .children =  {
                 &(struct SyntaxTreeNode) {.type=LBL_LITERAL, .children={
                         &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}}},
                 &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}, NULL}},
-        { /* GEQ */
+        { /* JEQ */
                 .type = COMMAND, .children =  {
                 &(struct SyntaxTreeNode) {.type=REGISTER, .children={
                         &(struct SyntaxTreeNode) {.type=DECIMAL, .children={
@@ -448,7 +448,7 @@ struct SyntaxTreeNode proper_syntax_tree[NUM_COMMANDS] = {
                         }
                         },
                 }}, &(struct SyntaxTreeNode) {.type=END_STATEMENT, .children=NULL}, NULL}},
-        { /* GNQ */
+        { /* JNQ */
                 .type = COMMAND, .children =  {
                 &(struct SyntaxTreeNode) {.type=REGISTER, .children={
                         &(struct SyntaxTreeNode) {.type=DECIMAL, .children={
@@ -549,12 +549,12 @@ char *get_symbol_for_opcode(int opcode) {
         return "SRL";
     } else if (opcode == LBL) {
         return "LBL";
-    } else if (opcode == GOTO) {
-        return "GOTO";
-    } else if (opcode == GEQ) {
-        return "GEQ";
-    } else if (opcode == GNQ) {
-        return "GNQ";
+    } else if (opcode == JUMP) {
+        return "JUMP";
+    } else if (opcode == JEQ) {
+        return "JEQ";
+    } else if (opcode == JNQ) {
+        return "JNQ";
     } else if (opcode == PRINT) {
         return "PRINT";
     } else if (opcode == PRINTLN) {
@@ -756,13 +756,13 @@ int get_token_type(char *symbol) {
     if (strcmp(upper_symbol, "LBL") == 0) {
         return COMMAND;
     }
-    if (strcmp(upper_symbol, "GOTO") == 0) {
+    if (strcmp(upper_symbol, "JUMP") == 0) {
         return COMMAND;
     }
-    if (strcmp(upper_symbol, "GEQ") == 0) {
+    if (strcmp(upper_symbol, "JEQ") == 0) {
         return COMMAND;
     }
-    if (strcmp(upper_symbol, "GNQ") == 0) {
+    if (strcmp(upper_symbol, "JNQ") == 0) {
         return COMMAND;
     }
     if (strcmp(upper_symbol, "PRINT") == 0) {
@@ -878,14 +878,14 @@ uint64_t get_opcode_for_symbol(char *symbol) {
     if (strcmp(upper_symbol, "LBL") == 0) {
         return LBL;
     }
-    if (strcmp(upper_symbol, "GOTO") == 0) {
-        return GOTO;
+    if (strcmp(upper_symbol, "JUMP") == 0) {
+        return JUMP;
     }
-    if (strcmp(upper_symbol, "GEQ") == 0) {
-        return GEQ;
+    if (strcmp(upper_symbol, "JEQ") == 0) {
+        return JEQ;
     }
-    if (strcmp(upper_symbol, "GNQ") == 0) {
-        return GNQ;
+    if (strcmp(upper_symbol, "JNQ") == 0) {
+        return JNQ;
     }
     if (strcmp(upper_symbol, "PRINT") == 0) {
         return PRINT;
@@ -1370,7 +1370,6 @@ void compile_tokens(struct TokenNode *tokens, FILE *output, int num_nodes) {
             }
             argument_offset -= 16L;
         } else if (token->type == DECIMAL) {
-            printf("Compiling %s\n", token->symbol);
 
             int immediate = atoi(token->symbol);
 
