@@ -500,7 +500,7 @@ struct SyntaxTreeNode proper_syntax_tree[NUM_COMMANDS] = {
 
 int silent_mode = 0;
 int verbose_mode = 0;
-
+int prevent_user_interaction = 0;
 
 char *output_path = "out.s";
 char *input_path = NULL;
@@ -1185,6 +1185,13 @@ int syntax_check(struct TokenNode *tokens, int num_nodes) {
                 printf("[LEXER] Running Syntax Check for command %s at line %d\n", finger->token->symbol,
                        finger->token->line + 1);
             int result = iterative_syntax_token_tree_check(finger, &tree);
+            if (opcode == INPUT && prevent_user_interaction == 1) {
+                printf("[ERROR] File %s:%d:%d\n\t\t\tInput command is not allowed with prevent-interaction flag at line %d and pos %d\n",
+                       input_path, finger->token->line + 1, finger->token->pos + 1,
+                       finger->token->line + 1, finger->token->pos + 1);
+                result = 1;
+            }
+
             if (result != 0) {
                 syntax_check_result = result;
             }
@@ -1672,6 +1679,8 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(arg, "--syntax-rules") == 0) {
             print_syntax_rules();
             return 0;
+        } else if (strcmp(arg, "--prevent-interaction") == 0) {
+            prevent_user_interaction = 1;
         } else {
             input_path = arg;
         }
