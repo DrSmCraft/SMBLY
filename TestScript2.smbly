@@ -1,10 +1,11 @@
-# Program that prints numbers 1 - 10 using directive jumps
-PRINTLN "TestScript.smbly"
+DECLARE .greeting, "TestScript.smbly"
+# Program that prints numbers 1 - 10 using label jumps
+PRINTLN .greeting
 SR $1, 0 # Put zero into register 1
-LBL "loop"
+LBL :loop
 
 ADD $1, $1, 1
 PRINTLN $1
 GTE $2, $1, 10
-GEQ $2, 0, "loop"
+JEQ $2, 0, :loop
 HALT

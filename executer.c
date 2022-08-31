@@ -1,21 +1,36 @@
+/**
+ * @name executer.c
+ * @author DrSmCraft
+ * @copyright (c) 2022 All Rights Reserved
+ *
+ * This file runs given compiled *.s files.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <ctype.h>
 #include <stdint.h>
 
 #define VERSION 1.0
+#define NUM_REGISTERS 100
 
+uint64_t num_labels = 0;
 uint64_t num_directives = 0;
 
-int registers[100];
+int registers[NUM_REGISTERS];
 int instruction_index = 0;
-char **directives = NULL;
+char **labels = NULL;
+char **directives_values = NULL;
+char **directives_names = NULL;
 int *label_instruction_pos = NULL;
 char *input_path = NULL;
 int silent_mode = 0;
 int verbose_mode = 0;
 
+/**
+ * Get the string representation of the command.
+ * @param opcode Integer that corresponds to the opcode of the command.
+ * @return String that represents the command. If the opcode is invalid, NULL is returned.
+ */
 char *get_symbol_for_opcode(int opcode) {
     if (opcode == 0) {
         return "SR";
@@ -74,7 +89,15 @@ char *get_symbol_for_opcode(int opcode) {
     return NULL;
 }
 
-int execute_SR(int *registers, int out_reg, int first_operand, int first_immediate) {
+/**
+ * Execute a SR (Set Register) command.
+ * @param out_reg The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_SR(int out_reg, int first_operand, int first_immediate) {
     if (first_immediate > 0) {
         registers[out_reg] = first_operand;
     } else {
@@ -83,7 +106,18 @@ int execute_SR(int *registers, int out_reg, int first_operand, int first_immedia
     return 0;
 }
 
-int execute_ADD(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a ADD (ADDition) command.
+ * @param out_reg  The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_ADD(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int result = 0;
     if (first_immediate > 0) {
@@ -102,8 +136,18 @@ int execute_ADD(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-
-int execute_SUB(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a SUB (SUBtract) command.
+ * @param out_reg  The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_SUB(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int result = 0;
     if (first_immediate > 0) {
@@ -122,8 +166,18 @@ int execute_SUB(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-
-int execute_MUL(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a MUL (MULtiply) command.
+ * @param out_reg  The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_MUL(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int result = 0;
     if (first_immediate > 0) {
@@ -142,7 +196,18 @@ int execute_MUL(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-int execute_DIV(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a DIV (DIVide) command.
+ * @param out_reg  The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception. If a divide by zero is encountered, error message is printed and -1 is returned.
+ */
+int execute_DIV(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int result = 0;
     if (first_immediate > 0) {
@@ -166,7 +231,18 @@ int execute_DIV(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-int execute_MOD(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a MOD (MODulus) command.
+ * @param out_reg  The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception. If a divide by zero is encountered, error message is printed and -1 is returned.
+ */
+int execute_MOD(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int result = 0;
     if (first_immediate > 0) {
@@ -191,8 +267,18 @@ int execute_MOD(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-
-int execute_EQ(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a EQ (EQuals) command.
+ * @param out_reg  The index of the output register. If both operands are equal, then 1 is placed in the out_reg. Otherwise, 0 is placed in out_reg.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_EQ(int out_reg, int first_operand, int second_operand, int first_immediate,
                int second_immediate) {
     int val1 = 0;
     int val2 = 0;
@@ -213,7 +299,18 @@ int execute_EQ(int *registers, int out_reg, int first_operand, int second_operan
     return 0;
 }
 
-int execute_NEQ(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a NEQ (Not EQuals) command.
+ * @param out_reg  The index of the output register. If operands are not equal, then 1 is placed in the out_reg. Otherwise, 0 is placed in out_reg.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_NEQ(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int val1 = 0;
     int val2 = 0;
@@ -234,7 +331,18 @@ int execute_NEQ(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-int execute_GT(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a GT (Greater Than) command.
+ * @param out_reg  The index of the output register. If operand_one is greater than operand_2, then 1 is placed in the out_reg. Otherwise, 0 is placed in out_reg.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_GT(int out_reg, int first_operand, int second_operand, int first_immediate,
                int second_immediate) {
     int val1 = 0;
     int val2 = 0;
@@ -255,7 +363,18 @@ int execute_GT(int *registers, int out_reg, int first_operand, int second_operan
     return 0;
 }
 
-int execute_GTE(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a GTE (Greater Than or Equal) command.
+ * @param out_reg  The index of the output register. If operand_one is greater than or equal to operand_2, then 1 is placed in the out_reg. Otherwise, 0 is placed in out_reg.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_GTE(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int val1 = 0;
     int val2 = 0;
@@ -276,8 +395,18 @@ int execute_GTE(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-
-int execute_LT(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a LT (Less Than) command.
+ * @param out_reg  The index of the output register. If operand_one is less than operand_2, then 1 is placed in the out_reg. Otherwise, 0 is placed in out_reg.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_LT(int out_reg, int first_operand, int second_operand, int first_immediate,
                int second_immediate) {
     int val1 = 0;
     int val2 = 0;
@@ -298,7 +427,18 @@ int execute_LT(int *registers, int out_reg, int first_operand, int second_operan
     return 0;
 }
 
-int execute_LTE(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a LTE (Less Than or Equal) command.
+ * @param out_reg  The index of the output register. If operand_one is less than or equal to operand_2, then 1 is placed in the out_reg. Otherwise, 0 is placed in out_reg.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_LTE(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int val1 = 0;
     int val2 = 0;
@@ -319,8 +459,18 @@ int execute_LTE(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-
-int execute_AND(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a AND (bitwise AND) command.
+ * @param out_reg  The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_AND(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int val1 = 0;
     int val2 = 0;
@@ -341,7 +491,18 @@ int execute_AND(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-int execute_OR(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a OR (bitwise OR) command.
+ * @param out_reg  The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_OR(int out_reg, int first_operand, int second_operand, int first_immediate,
                int second_immediate) {
     int val1 = 0;
     int val2 = 0;
@@ -362,7 +523,15 @@ int execute_OR(int *registers, int out_reg, int first_operand, int second_operan
     return 0;
 }
 
-int execute_NOT(int *registers, int out_reg, int first_operand, int first_immediate) {
+/**
+ * Execute a NOT (bitwise NOT) command.
+ * @param out_reg  The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_NOT(int out_reg, int first_operand, int first_immediate) {
     int val1 = 0;
 
     if (first_immediate > 0) {
@@ -376,7 +545,18 @@ int execute_NOT(int *registers, int out_reg, int first_operand, int first_immedi
     return 0;
 }
 
-int execute_XOR(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a XOR (bitwise XOR) command.
+ * @param out_reg  The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_XOR(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int val1 = 0;
     int val2 = 0;
@@ -397,7 +577,18 @@ int execute_XOR(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-int execute_SLL(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a SLL (bitwise Shift Left Logical) command. It shifts the first_operand by second_operand number of bits to the left.
+ * @param out_reg The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_SLL(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int val1 = 0;
     int val2 = 0;
@@ -418,7 +609,18 @@ int execute_SLL(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-int execute_SRL(int *registers, int out_reg, int first_operand, int second_operand, int first_immediate,
+/**
+ * Execute a SRL (bitwise Shift Right Logical) command. It shifts the first_operand by second_operand number of bits to the right.
+ * @param out_reg The index of the output register.
+ * @param first_operand The value of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param first_immediate Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @return 0 if successfully executed. Non-zero if there is an exception.
+ */
+int execute_SRL(int out_reg, int first_operand, int second_operand, int first_immediate,
                 int second_immediate) {
     int val1 = 0;
     int val2 = 0;
@@ -439,11 +641,16 @@ int execute_SRL(int *registers, int out_reg, int first_operand, int second_opera
     return 0;
 }
 
-int execute_LBL(int *registers, int directive_index) {
-    char *directive = directives[directive_index];
+/**
+ * Execute a LBL (LaBeL) command.
+ * @param label_index Index of the stored label.
+ * @return 0 if successfully executed. -1 if the label was not found.
+ */
+int execute_LBL(int label_index) {
+    char *label = labels[label_index];
     int success = 0;
-    for (int i = 0; i < num_directives; ++i) {
-        if (strcmp(directives[i], directive) == 0) {
+    for (int i = 0; i < num_labels; ++i) {
+        if (strcmp(labels[i], label) == 0) {
             label_instruction_pos[i] = instruction_index;
             success = 1;
         }
@@ -456,11 +663,16 @@ int execute_LBL(int *registers, int directive_index) {
 }
 
 
-int execute_GOTO(int *registers, int directive_index) {
-    char *directive = directives[directive_index];
+/**
+ * Execute a GOTO (GO TO) command.
+ * @param label_index Index of the stored label.
+ * @return 1 if successfully executed. (Returning 1 prepares the executer for a jump in instruction index). -1 if the label was not found.
+ */
+int execute_GOTO(int label_index) {
+    char *label = labels[label_index];
     int success = 0;
-    for (int i = 0; i < num_directives; ++i) {
-        if (strcmp(directives[i], directive) == 0) {
+    for (int i = 0; i < num_labels; ++i) {
+        if (strcmp(labels[i], label) == 0) {
             int new_instruction_index = label_instruction_pos[i];
             instruction_index = new_instruction_index;
             success = 1;
@@ -473,9 +685,17 @@ int execute_GOTO(int *registers, int directive_index) {
     return 1;
 }
 
-
-int execute_GEQ(int *registers, int out_reg, int second_operand, int second_immediate, int directive_index) {
-    int value1 = registers[out_reg];
+/**
+ * Execute a GEQ (Go to on EQuality) command. If the values of the first_operand_register and second_operand are equal, then go to the label_index.
+ * @param first_operand_register The register index of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param label_index The label index that needs to go to.
+ * @return 1 if successfully executed. (Returning 1 prepares the executer for a jump in instruction index). -1 if the label was not found.
+ */
+int execute_GEQ(int first_operand_register, int second_operand, int second_immediate, int label_index) {
+    int value1 = registers[first_operand_register];
     int value2 = 0;
     if (second_immediate) {
         value2 = second_operand;
@@ -483,10 +703,10 @@ int execute_GEQ(int *registers, int out_reg, int second_operand, int second_imme
         value2 = registers[second_operand];
     }
     if (value1 == value2) {
-        char *directive = directives[directive_index];
+        char *label = labels[label_index];
         int success = 0;
-        for (int i = 0; i < num_directives; ++i) {
-            if (strcmp(directives[i], directive) == 0) {
+        for (int i = 0; i < num_labels; ++i) {
+            if (strcmp(labels[i], label) == 0) {
                 int new_instruction_index = label_instruction_pos[i];
                 instruction_index = new_instruction_index;
                 success = 1;
@@ -501,9 +721,17 @@ int execute_GEQ(int *registers, int out_reg, int second_operand, int second_imme
     return 0;
 }
 
-
-int execute_GNQ(int *registers, int out_reg, int second_operand, int second_immediate, int directive_index) {
-    int value1 = registers[out_reg];
+/**
+ * Execute a GNQ (Go to on No eQuality) command. If the values of the first_operand_register and second_operand are not equal, then go to the label_index.
+ * @param first_operand_register The register index of the first operand.
+ * @param second_operand The value of the second operand.
+ * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
+ *      If first_immediate > 0, then first_operand is treated as an immediate. Otherwise, first_operand is treated as a register index.
+ * @param label_index The label index that needs to go to.
+ * @return 1 if successfully executed. (Returning 1 prepares the executer for a jump in instruction index). -1 if the label was not found.
+ */
+int execute_GNQ(int first_operand_register, int second_operand, int second_immediate, int label_index) {
+    int value1 = registers[first_operand_register];
     int value2 = 0;
     if (second_immediate) {
         value2 = second_operand;
@@ -511,10 +739,10 @@ int execute_GNQ(int *registers, int out_reg, int second_operand, int second_imme
         value2 = registers[second_operand];
     }
     if (value1 != value2) {
-        char *directive = directives[directive_index];
+        char *label = labels[label_index];
         int success = 0;
-        for (int i = 0; i < num_directives; ++i) {
-            if (strcmp(directives[i], directive) == 0) {
+        for (int i = 0; i < num_labels; ++i) {
+            if (strcmp(labels[i], label) == 0) {
                 int new_instruction_index = label_instruction_pos[i];
                 instruction_index = new_instruction_index;
                 success = 1;
@@ -530,20 +758,35 @@ int execute_GNQ(int *registers, int out_reg, int second_operand, int second_imme
     return 0;
 }
 
-int execute_PRINT(int *registers, int out_reg, int first_immediate) {
-    if (first_immediate) {
-        printf("%s", directives[out_reg]);
+/**
+ * Execute a PRINT (PRINT) command. This will print the given values without a new line at the end.
+ * @param first_operand The value of the first operand.
+ * @param first_directive Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_directive > 0, then first_operand is treated as an directive index. Otherwise, first_operand is treated as a register index.
+ *       Immediate values are not allowed for PRINT.
+ * @return 0 if successfully executed. Otherwise, non-zero is returned.
+ */
+int execute_PRINT(int first_operand, int first_directive) {
+    if (first_directive) {
+        printf("%s", directives_values[first_operand]);
 
     } else {
-        printf("%d", registers[out_reg]);
+        printf("%d", registers[first_operand]);
     }
     return 0;
 }
 
-
-int execute_PRINTLN(int *registers, int out_reg, int first_immediate) {
+/**
+ * Execute a PRINTLN (PRINT LiNe) command. This will print the given values with a new line at the end.
+ * @param first_operand The value of the first operand.
+ * @param first_directive Integer flag to distinguish whether first_operand is an immediate or register index.
+ *       If first_directive > 0, then first_operand is treated as an directive index. Otherwise, first_operand is treated as a register index.
+ *       Immediate values are not allowed for PRINT.
+ * @return 0 if successfully executed. Otherwise, non-zero is returned.
+ */
+int execute_PRINTLN(int out_reg, int first_immediate) {
     if (first_immediate) {
-        printf("%s\n", directives[out_reg]);
+        printf("%s\n", directives_values[out_reg]);
 
     } else {
         printf("%d\n", registers[out_reg]);
@@ -551,11 +794,21 @@ int execute_PRINTLN(int *registers, int out_reg, int first_immediate) {
     return 0;
 }
 
-int execute_INPUT(int *registers, int out_reg) {
-    scanf("%d", &(registers[out_reg]));
+/**
+ * Execute a INPUT (INPUT) command. This will wait for user to input an integer.
+ * @param reg_index The index of the register that the inputted value will be stored.
+ * @return 0 if successfully executed. Otherwise, non-zero is returned.
+ */
+int execute_INPUT(int reg_index) {
+    scanf("%d", &(registers[reg_index]));
     return 0;
 }
 
+/**
+ * Execute a HALT (HALT) command. This will terminate the execution of the program
+ * @return 0 if successfully executed. Otherwise, non-zero is returned.
+ *      However, the return value will never be used because the program exits before any value is returned.
+ */
 int execute_HALT() {
     exit(0);
     return 0;
@@ -585,70 +838,62 @@ int execute_line(int opcode, int out_reg, int first_operand, int second_operand,
 
 
     if (opcode == 0) {
-        return execute_SR(registers, out_reg, first_operand, first_immediate);
+        return execute_SR(out_reg, first_operand, first_immediate);
     } else if (opcode == 1) {
-        return execute_ADD(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_ADD(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 2) {
-        return execute_SUB(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_SUB(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 3) {
-        return execute_MUL(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_MUL(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 4) {
-        return execute_DIV(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_DIV(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 5) {
-        return execute_MOD(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_MOD(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 6) {
-        return execute_EQ(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_EQ(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 7) {
-        return execute_NEQ(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_NEQ(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 8) {
-        return execute_GT(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_GT(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 9) {
-        return execute_GTE(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_GTE(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 10) {
-        return execute_LT(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_LT(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 11) {
-        return execute_LTE(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_LTE(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 12) {
-        return execute_AND(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_AND(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 13) {
-        return execute_OR(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_OR(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 14) {
-        return execute_NOT(registers, out_reg, first_operand, first_immediate);
+        return execute_NOT(out_reg, first_operand, first_immediate);
     } else if (opcode == 15) {
-        return execute_XOR(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_XOR(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 16) {
-        return execute_SLL(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_SLL(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 17) {
-        return execute_SRL(registers, out_reg, first_operand, second_operand, first_immediate, second_immediate);
+        return execute_SRL(out_reg, first_operand, second_operand, first_immediate, second_immediate);
     } else if (opcode == 18) {
-        return execute_LBL(registers, out_reg);
+        return execute_LBL(out_reg);
     } else if (opcode == 19) {
-        return execute_GOTO(registers, out_reg);
+        return execute_GOTO(out_reg);
     } else if (opcode == 20) {
 //        return "GEQ";
-        return execute_GEQ(registers, out_reg, first_operand, first_immediate, second_operand);
+        return execute_GEQ(out_reg, first_operand, first_immediate, second_operand);
     } else if (opcode == 21) {
 //        return "GNQ";
-        return execute_GNQ(registers, out_reg, first_operand, first_immediate, second_operand);
+        return execute_GNQ(out_reg, first_operand, first_immediate, second_operand);
     } else if (opcode == 22) {
-        return execute_PRINT(registers, out_reg, first_immediate);
+        return execute_PRINT(out_reg, first_immediate);
     } else if (opcode == 23) {
-        return execute_PRINTLN(registers, out_reg, first_immediate);
+        return execute_PRINTLN(out_reg, first_immediate);
     } else if (opcode == 24) {
         return execute_HALT();
     } else if (opcode == 25) {
-        return execute_INPUT(registers, out_reg);
+        return execute_INPUT(out_reg);
     }
     return -1;
 
-}
-
-void print_registers(int *registers) {
-
-    for (int i = 0; i < 10; ++i) {
-        printf("%d\t", registers[i]);
-    }
-    printf("\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -710,31 +955,65 @@ int main(int argc, char *argv[]) {
     while (fread(&section_identifier, 1, sizeof(section_identifier), fp) == 8) {
 
 
-        if (section_identifier == 0xFFFF0000FFFF0000L) {
-            // Directives section
+        if (section_identifier == 0xAAAAAAAAAAAAAAAAL) {
+            // Labels section
+            int result = fread(&num_labels, 1, sizeof(num_labels), fp);
+            if (result != 8) {
+                return 1;
+            }
+            labels = malloc(sizeof(char *) * num_labels);
+            label_instruction_pos = malloc(sizeof(int) * num_labels);
+            int max_line_size = 30;
+            for (int label_index = 0; label_index < num_labels; ++label_index) {
+                char c;
+                char *label = (char *) malloc(max_line_size * sizeof(char));
+                int i = 0;
+                while ((c = getc(fp)) != '\0') {
+                    label[i] = c;
+                    i++;
+                }
+                label[i] = '\0';
+                labels[label_index] = label;
+            }
+
+
+        } else if (section_identifier == 0xBBBBBBBBBBBBBBBBL) {
+            // Directive section
             int result = fread(&num_directives, 1, sizeof(num_directives), fp);
             if (result != 8) {
                 return 1;
             }
-            directives = malloc(sizeof(char *) * num_directives);
-            label_instruction_pos = malloc(sizeof(int) * num_directives);
+            int n = num_directives;
+            directives_names = malloc(sizeof(char *) * num_directives);
+            directives_values = malloc(sizeof(char *) * num_directives);
+
             int max_line_size = 30;
             for (int directive_index = 0; directive_index < num_directives; ++directive_index) {
                 char c;
-                char *directive = (char *) malloc(max_line_size * sizeof(char));
+                char *directive_name = (char *) malloc(max_line_size * sizeof(char));
+                char *directive_value = (char *) malloc(max_line_size * sizeof(char));
+
                 int i = 0;
                 while ((c = getc(fp)) != '\0') {
-                    directive[i] = c;
+                    directive_name[i] = c;
                     i++;
                 }
-                directive[i] = '\0';
-                directives[directive_index] = directive;
+                directive_name[i] = '\0';
+
+                i = 0;
+                while ((c = getc(fp)) != '\0') {
+                    directive_value[i] = c;
+                    i++;
+                }
+                directive_value[i] = '\0';
+
+                directives_names[directive_index] = directive_name;
+                directives_values[directive_index] = directive_value;
+
             }
-
-
-        } else if (section_identifier == 0x0000FFFF0000FFFFL) {
+        } else if (section_identifier == 0xCCCCCCCCCCCCCCCCL) {
             // codes section
-            if (directives == NULL) {
+            if (labels == NULL) {
                 return 1;
             }
 
@@ -742,14 +1021,14 @@ int main(int argc, char *argv[]) {
             uint64_t file_code_section_offset;
             file_code_section_offset = ftell(fp);
 
-            // First scan file for directives then execute instructions
+            // First scan file for labels then execute instructions
             while (fread(&code, 1, sizeof(code), fp) == 8) {
                 int opcode = ((code) & 0xFFFF000000000000L) >> 12 * 4;
                 int out_reg = ((code) & 0x0000FFFF00000000L) >> 8 * 4;
 
                 if (opcode == 18) {
-                    // Processing a LBL, save the directive to directives array
-                    execute_LBL(registers, out_reg);
+                    // Processing a LBL, save the label to labels array
+                    execute_LBL(out_reg);
                 }
                 instruction_index++;
 
@@ -794,7 +1073,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    free(directives);
+    free(labels);
+    free(directives_names);
+    free(directives_values);
     free(label_instruction_pos);
     return 0;
 }
