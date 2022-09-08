@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <stdint.h>
+#include <string.h>
 
 #define VERSION 1.0
 #define NUM_REGISTERS 100
@@ -262,7 +263,7 @@ int execute_MOD(int out_reg, int first_operand, int second_operand, int first_im
         printf("[ERROR] Modulo by Zero Error\n");
         return -1;
     }
-    result /= second_value;
+    result = result % second_value;
     registers[out_reg] = result;
     return 0;
 }
@@ -664,11 +665,11 @@ int execute_LBL(int label_index) {
 
 
 /**
- * Execute a GOTO (GO TO) command.
+ * Execute a JUMP (Jump) command.
  * @param label_index Index of the stored label.
  * @return 1 if successfully executed. (Returning 1 prepares the executer for a jump in instruction index). -1 if the label was not found.
  */
-int execute_GOTO(int label_index) {
+int execute_JUMP(int label_index) {
     char *label = labels[label_index];
     int success = 0;
     for (int i = 0; i < num_labels; ++i) {
@@ -686,7 +687,7 @@ int execute_GOTO(int label_index) {
 }
 
 /**
- * Execute a GEQ (Go to on EQuality) command. If the values of the first_operand_register and second_operand are equal, then go to the label_index.
+ * Execute a JEQ (Jump on EQuality) command. If the values of the first_operand_register and second_operand are equal, then go to the label_index.
  * @param first_operand_register The register index of the first operand.
  * @param second_operand The value of the second operand.
  * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
@@ -694,7 +695,7 @@ int execute_GOTO(int label_index) {
  * @param label_index The label index that needs to go to.
  * @return 1 if successfully executed. (Returning 1 prepares the executer for a jump in instruction index). -1 if the label was not found.
  */
-int execute_GEQ(int first_operand_register, int second_operand, int second_immediate, int label_index) {
+int execute_JEQ(int first_operand_register, int second_operand, int second_immediate, int label_index) {
     int value1 = registers[first_operand_register];
     int value2 = 0;
     if (second_immediate) {
@@ -722,7 +723,7 @@ int execute_GEQ(int first_operand_register, int second_operand, int second_immed
 }
 
 /**
- * Execute a GNQ (Go to on No eQuality) command. If the values of the first_operand_register and second_operand are not equal, then go to the label_index.
+ * Execute a JNQ (Jump on No eQuality) command. If the values of the first_operand_register and second_operand are not equal, then go to the label_index.
  * @param first_operand_register The register index of the first operand.
  * @param second_operand The value of the second operand.
  * @param second_immediate  Integer flag to distinguish whether second_operand is an immediate or register index.
@@ -730,7 +731,7 @@ int execute_GEQ(int first_operand_register, int second_operand, int second_immed
  * @param label_index The label index that needs to go to.
  * @return 1 if successfully executed. (Returning 1 prepares the executer for a jump in instruction index). -1 if the label was not found.
  */
-int execute_GNQ(int first_operand_register, int second_operand, int second_immediate, int label_index) {
+int execute_JNQ(int first_operand_register, int second_operand, int second_immediate, int label_index) {
     int value1 = registers[first_operand_register];
     int value2 = 0;
     if (second_immediate) {
@@ -876,13 +877,13 @@ int execute_line(int opcode, int out_reg, int first_operand, int second_operand,
     } else if (opcode == 18) {
         return execute_LBL(out_reg);
     } else if (opcode == 19) {
-        return execute_GOTO(out_reg);
+        return execute_JUMP(out_reg);
     } else if (opcode == 20) {
 //        return "GEQ";
-        return execute_GEQ(out_reg, first_operand, first_immediate, second_operand);
+        return execute_JEQ(out_reg, first_operand, first_immediate, second_operand);
     } else if (opcode == 21) {
 //        return "GNQ";
-        return execute_GNQ(out_reg, first_operand, first_immediate, second_operand);
+        return execute_JNQ(out_reg, first_operand, first_immediate, second_operand);
     } else if (opcode == 22) {
         return execute_PRINT(out_reg, first_immediate);
     } else if (opcode == 23) {

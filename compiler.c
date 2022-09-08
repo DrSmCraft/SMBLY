@@ -24,7 +24,7 @@
 char *strupr(char *input) {
     int length = strlen(input);
     for (int i = 0; i < length; ++i) {
-        toupper(input[i]);
+        input[i] = toupper(input[i]);
     }
     return input;
 }
@@ -656,6 +656,83 @@ char *strip(char *string) {
     return rstrip(lstrip(string));
 }
 
+
+/**
+ * Get the opcode for a command as a string.
+ * @param symbol A string of a command.
+ * @return Uint64_t that is the opcode. It corresponds to Command enum. If the code is invalid, -1 is returned.
+ */
+uint64_t get_opcode_for_symbol(char *symbol) {
+    int len = strlen(symbol);
+    char *upper_symbol = malloc(len * sizeof(char));
+    strncpy(upper_symbol, symbol, len);
+    strupr(upper_symbol);
+    upper_symbol[len] = '\0';
+    uint64_t result = -1L;
+
+    if (strcmp(upper_symbol, "SR") == 0) {
+        result = SR;
+    } else if (strcmp(upper_symbol, "ADD") == 0) {
+        result = ADD;
+    } else if (strcmp(upper_symbol, "SUB") == 0) {
+        result = SUB;
+    } else if (strcmp(upper_symbol, "MUL") == 0) {
+        result = MUL;
+    } else if (strcmp(upper_symbol, "DIV") == 0) {
+        result = DIV;
+    } else if (strcmp(upper_symbol, "MOD") == 0) {
+        result = MOD;
+    } else if (strcmp(upper_symbol, "EQ") == 0) {
+        result = EQ;
+    } else if (strcmp(upper_symbol, "NEQ") == 0) {
+        result = NEQ;
+    } else if (strcmp(upper_symbol, "GT") == 0) {
+        result = GT;
+    } else if (strcmp(upper_symbol, "GTE") == 0) {
+        result = GTE;
+    } else if (strcmp(upper_symbol, "LT") == 0) {
+        result = LT;
+    } else if (strcmp(upper_symbol, "LTE") == 0) {
+        result = LTE;
+    } else if (strcmp(upper_symbol, "AND") == 0) {
+        result = AND;
+    } else if (strcmp(upper_symbol, "OR") == 0) {
+        result = OR;
+    } else if (strcmp(upper_symbol, "NOT") == 0) {
+        result = NOT;
+
+    } else if (strcmp(upper_symbol, "XOR") == 0) {
+        result = XOR;
+    } else if (strcmp(upper_symbol, "SLL") == 0) {
+        result = SLL;
+    } else if (strcmp(upper_symbol, "SRL") == 0) {
+        result = SRL;
+    } else if (strcmp(upper_symbol, "LBL") == 0) {
+        result = LBL;
+    } else if (strcmp(upper_symbol, "JUMP") == 0) {
+        result = JUMP;
+    } else if (strcmp(upper_symbol, "JEQ") == 0) {
+        result = JEQ;
+    } else if (strcmp(upper_symbol, "JNQ") == 0) {
+        result = JNQ;
+    } else if (strcmp(upper_symbol, "PRINT") == 0) {
+        result = PRINT;
+    } else if (strcmp(upper_symbol, "PRINTLN") == 0) {
+        result = PRINTLN;
+    } else if (strcmp(upper_symbol, "HALT") == 0) {
+        result = HALT;
+    } else if (strcmp(upper_symbol, "INPUT") == 0) {
+        result = INPUT;
+    } else if (strcmp(upper_symbol, "DECLARE") == 0) {
+        result = DECLARE;
+    }
+    free(upper_symbol);
+    return result;
+
+
+}
+
+
 /**
  * Get the type of token given a string.
  * @param symbol String of the token.
@@ -696,90 +773,70 @@ int get_token_type(char *symbol) {
         return LBL_LITERAL;
     }
 
-    char *upper_symbol = strupr(symbol);
+    char *upper_symbol = malloc(strlen(symbol) * sizeof(char));
+    strncpy(upper_symbol, symbol, strlen(symbol));
+    strupr(upper_symbol);
+    uint64_t result = -1L;
+
 
     if (strcmp(upper_symbol, "SR") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "ADD") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "SUB") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "MUL") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "DIV") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "MOD") == 0) {
         return COMMAND;
-    }
-    if (strcmp(upper_symbol, "ADD") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "SUB") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "MUL") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "DIV") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "MOD") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "EQ") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "NEQ") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "GT") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "GTE") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "LT") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "LTE") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "AND") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "OR") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "NOT") == 0) {
-        return COMMAND;
+    } else if (strcmp(upper_symbol, "EQ") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "NEQ") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "GT") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "GTE") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "LT") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "LTE") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "AND") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "OR") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "NOT") == 0) {
+        result = COMMAND;
 
+    } else if (strcmp(upper_symbol, "XOR") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "SLL") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "SRL") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "LBL") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "JUMP") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "JEQ") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "JNQ") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "PRINT") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "PRINTLN") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "HALT") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "INPUT") == 0) {
+        result = COMMAND;
+    } else if (strcmp(upper_symbol, "DECLARE") == 0) {
+        result = COMMAND;
     }
-    if (strcmp(upper_symbol, "XOR") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "SLL") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "SRL") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "LBL") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "JUMP") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "JEQ") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "JNQ") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "PRINT") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "PRINTLN") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "HALT") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "INPUT") == 0) {
-        return COMMAND;
-    }
-    if (strcmp(upper_symbol, "DECLARE") == 0) {
-        return COMMAND;
-    }
+
+
     if (upper_symbol[0] == '$') {
         int index = 1;
         while (index < strlen(upper_symbol)) {
@@ -789,10 +846,10 @@ int get_token_type(char *symbol) {
             }
             index++;
         }
-        return REGISTER;
+        result = REGISTER;
     }
     if (upper_symbol[0] == '0' && (upper_symbol[1] == 'X' || upper_symbol[1] == 'x')) {
-        return HEXIDECIMAL;
+        result = HEXIDECIMAL;
     }
 
     if (isdigit(upper_symbol[0]) > 0) {
@@ -804,108 +861,11 @@ int get_token_type(char *symbol) {
             index++;
 
         }
-        return DECIMAL;
+        result = DECIMAL;
     }
 
-
-    return -1;
-}
-
-/**
- * Get the opcode for a command as a string.
- * @param symbol A string of a command.
- * @return Uint64_t that is the opcode. It corresponds to Command enum. If the code is invalid, -1 is returned.
- */
-uint64_t get_opcode_for_symbol(char *symbol) {
-
-    char *upper_symbol = strupr(symbol);
-
-    if (strcmp(upper_symbol, "SR") == 0) {
-        return SR;
-    }
-    if (strcmp(upper_symbol, "ADD") == 0) {
-        return ADD;
-    }
-    if (strcmp(upper_symbol, "SUB") == 0) {
-        return SUB;
-    }
-    if (strcmp(upper_symbol, "MUL") == 0) {
-        return MUL;
-    }
-    if (strcmp(upper_symbol, "DIV") == 0) {
-        return DIV;
-    }
-    if (strcmp(upper_symbol, "MOD") == 0) {
-        return MOD;
-    }
-    if (strcmp(upper_symbol, "EQ") == 0) {
-        return EQ;
-    }
-    if (strcmp(upper_symbol, "NEQ") == 0) {
-        return NEQ;
-    }
-    if (strcmp(upper_symbol, "GT") == 0) {
-        return GT;
-    }
-    if (strcmp(upper_symbol, "GTE") == 0) {
-        return GTE;
-    }
-    if (strcmp(upper_symbol, "LT") == 0) {
-        return LT;
-    }
-    if (strcmp(upper_symbol, "LTE") == 0) {
-        return LTE;
-    }
-    if (strcmp(upper_symbol, "AND") == 0) {
-        return AND;
-    }
-    if (strcmp(upper_symbol, "OR") == 0) {
-        return OR;
-    }
-    if (strcmp(upper_symbol, "NOT") == 0) {
-        return NOT;
-
-    }
-    if (strcmp(upper_symbol, "XOR") == 0) {
-        return XOR;
-    }
-    if (strcmp(upper_symbol, "SLL") == 0) {
-        return SLL;
-    }
-    if (strcmp(upper_symbol, "SRL") == 0) {
-        return SRL;
-    }
-    if (strcmp(upper_symbol, "LBL") == 0) {
-        return LBL;
-    }
-    if (strcmp(upper_symbol, "JUMP") == 0) {
-        return JUMP;
-    }
-    if (strcmp(upper_symbol, "JEQ") == 0) {
-        return JEQ;
-    }
-    if (strcmp(upper_symbol, "JNQ") == 0) {
-        return JNQ;
-    }
-    if (strcmp(upper_symbol, "PRINT") == 0) {
-        return PRINT;
-    }
-    if (strcmp(upper_symbol, "PRINTLN") == 0) {
-        return PRINTLN;
-    }
-    if (strcmp(upper_symbol, "HALT") == 0) {
-        return HALT;
-    }
-    if (strcmp(upper_symbol, "INPUT") == 0) {
-        return INPUT;
-    }
-    if (strcmp(upper_symbol, "DECLARE") == 0) {
-        return DECLARE;
-    }
-
-    return -1L;
-
-
+    free(upper_symbol);
+    return result;
 }
 
 /**
@@ -957,7 +917,7 @@ int parse_line(char *line, int line_number, struct Token *token, int index) {
         } else {
             // Find the beginning of the next token
             while (line[index] != ' ' && line[index] != ',' && line[index] != '\0' && line[index] != '\n' &&
-                   line[index] != ';') {
+                   line[index] != ';' && line[index] != '#') {
                 index++;
             }
         }

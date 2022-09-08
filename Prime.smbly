@@ -28,6 +28,6 @@ HALT # End the program
 
 
 LBL :prime # The prime label
-PRINT $1# Print the number
-PRINTLN .prime# Print the prime message
+PRINT $1 # Print the number
+PRINTLN .prime # Print the prime message
 HALT # End the program
